@@ -9,7 +9,7 @@
     <br/><br/><br/>
 </div>
 
-LABLAB is the application that forks ovule and supports Pathfinder Harmony.
+LABLAB is the application that forks [Ovule](https://github.com/mill6-plat6aux/ovule) and supports Pathfinder Harmony.
 
 
 ## Requirements
