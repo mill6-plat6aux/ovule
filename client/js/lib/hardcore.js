@@ -3145,7 +3145,6 @@ function NumericField() {
             var resizeObserver = new ResizeObserver(function(observations) {
                 if(observations.length == 0) return;
                 resizeObserver.disconnect();
-                console.log(unitElement.innerText, unitElement.offsetWidth, unitElement.clientWidth);
                 inputElement.style.width = "calc(100% - " + (unitElement.offsetWidth + 4) + "px)";
             });
             resizeObserver.observe(unitElement);

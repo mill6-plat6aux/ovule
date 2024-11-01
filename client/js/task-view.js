@@ -399,6 +399,9 @@ class TaskRegisterView extends ViewController {
                 InputComposite({label: "Message", labelColor: "black", style: {position: "relative"}}, [
                     View({dataKey: "message", style: {"min-height": 24, "line-height": "1em"}})
                 ]),
+                InputComposite(".replyMessageField", {label: "Reply Message", labelColor: "black", style: {position: "relative", display: "none"}}, [
+                    View({dataKey: "replyMessage", height: 24, style: {"min-height": 24, "line-height": "1em"}})
+                ]),
                 InputComposite({label: "UpdatedDate", labelColor: "black", style: {position: "relative"}}, [
                     View({dataKey: "updatedDate", height: 24, style: {"line-height": "normal"}, dataHandler: (element, value) => {
                         if(value == null) return;
@@ -452,7 +455,25 @@ class TaskRegisterView extends ViewController {
             button.restore();
             return;
         }
-        this.applyHandler(this.data);
+
+        if(this.data.taskType == "ContractRequest" && this.data.status == "Completed") {
+            Module.loadLogic("js/datasource-view.js", () => {
+                let editor = new DataSourceReplyView();
+                editor.data = {
+                    taskId: this.data.taskId,
+                    userName: null,
+                    password: null,
+                    message: null
+                };
+                editor.applyHandler = record => {
+                    HttpConnection.request(ContextPath+"/lablab"+"/contract/reply", "POST", record).then(response => {
+                        this.applyHandler(this.data);
+                    });
+                };
+            });
+        }else {
+            this.applyHandler(this.data);
+        }
     }
 
     loadTaskData() {
@@ -574,7 +595,7 @@ class RequestRegisterView extends PopoverViewController {
                 View({dataKey: "recipientOrganizationName", height: 24})
             ]),
             InputComposite({label: "Message", labelColor: "black", style: {position: "relative"}}, [
-                TextField({dataKey: "message", height: 24, required: "required", tabIndex:1}),
+                TextArea({dataKey: "message", height: 64, required: "required", tabIndex:1}),
                 RequiredLabel()
             ]),
             View({align: "center", style: {margin: [16,0,0,0]}}, [

@@ -4,6 +4,8 @@ COPY ./package.json ./package.json
 COPY ./build.js ./build.js
 COPY ./client/ ./client/
 COPY ./i18n/ ./i18n/
+ARG CONTEXT_PATH
+ENV CONTEXT_PATH=$CONTEXT_PATH
 RUN npm install
 RUN npm run build
 

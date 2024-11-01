@@ -24,7 +24,8 @@ class MainView extends ViewController {
         super();
         this.parent = "body";
         this.view = View(".main", {style: {
-            width: "100%",
+            margin: [0, "auto"],
+            "max-width": "1024px",
             "min-height": "100%",
             "background-color": "rgba(255,255,255,0.8)",
             "user-select": "none",
@@ -35,11 +36,11 @@ class MainView extends ViewController {
                 padding: [32,8,8,32],
                 "vertical-align": "top",
             }}, [
-                View(".title", [
-                    InlineImage({height: 32, style:{margin: [0,8,16,0], float: "left"}, src: "images/title.svg"}),
-                    View({style: {display: "inline-block", padding: [4,0,0,0], "font-size": "8px", "line-height": "8px"}}, ["Product Footprint<br/>Management<br/>System"])
+                View(".title", {style: {margin: [0,0,24,0]}}, [
+                    InlineImage({style:{width: 200, margin: [0,8,0,0]}, src: "images/title.svg"}),
+                    View({style: {display: "inline-block", width: 200, padding: [4,0,0,0], "font-size": "8px", "line-height": "8px", "text-align": "center"}}, ["Product Footprint Management System"])
                 ]),
-                View({style: {clear: "both"}}, [
+                View([
                     MenuItem({title: "Organization", icon: "company.svg", tapHandler: () => {
                         this.handleContent(MainView.contents.Organization);
                     }}),

@@ -2,9 +2,9 @@ client: "mysql2"
 connection: 
   host: "localhost"
   port: 3306
-  user: "ovule"
-  password: "Ac1xtBuP"
-  database: "ovule"
+  user: "lablab"
+  password: "nCYZPBo0"
+  database: "lablab"
 pool: 
   min: 1
   max: 10

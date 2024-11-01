@@ -184,20 +184,20 @@ class OrganizationView extends ViewController {
         registerView.data = copyRecord(record);
         if(record.userId == null) {
             registerView.applyHandler = record => {
-                HttpConnection.request(ContextPath+"/users", "POST", record).then(response => {
+                HttpConnection.request(ContextPath+"/lablab"+"/users", "POST", record).then(response => {
                     this.userListView.loadData();
                     this.dismissDetailView();
                 });
             };
         }else {
             registerView.applyHandler = record => {
-                HttpConnection.request(ContextPath+"/users/"+record.userId, "PUT", record).then(response => {
+                HttpConnection.request(ContextPath+"/lablab"+"/users/"+record.userId, "PUT", record).then(response => {
                     this.userListView.loadData();
                     this.dismissDetailView();
                 });
             };
             registerView.deleteHandler = record => {
-                HttpConnection.request(ContextPath+"/users/"+record.userId, "DELETE", record).then(response => {
+                HttpConnection.request(ContextPath+"/lablab"+"/users/"+record.userId, "DELETE", record).then(response => {
                     this.userListView.loadData();
                     this.dismissDetailView();
                 });
@@ -567,7 +567,7 @@ class UserListView extends ViewController {
         Promise.all([
             HttpConnection.request(ContextPath+"/organizations/"+this.parentOrganizationId, "GET"),
             HttpConnection.request(ContextPath+"/organizations?parentOrganizationId="+this.parentOrganizationId, "GET"),
-            HttpConnection.request(ContextPath+"/users", "GET")
+            HttpConnection.request(ContextPath+"/lablab"+"/users", "GET")
         ]).then(results => {
             let organization = results[0];
             let organizations = results[1];
@@ -597,7 +597,8 @@ class UserRegisterView extends ViewController {
 
         let userTypes = [
             {label: "General", value: "General"},
-            {label: "Pathfinder", value: "Pathfinder"}
+            {label: "Pathfinder", value: "Pathfinder"},
+            {label: "Harmony", value: "Harmony"}
         ];
 
         this.view = View([
@@ -792,6 +793,15 @@ class UserRegisterView extends ViewController {
                             this.data.readProductFootprint = true;
                             this.data.writeProducts = true;
                             this.data.writeEmissionFactor = true;
+                            this.data.writeProductFootprint = true;
+                            this.data.writeTask = true;
+                        }else if(this.data.userType == "Harmony") {
+                            this.data.readOrganization = true;
+                            this.data.writeOrganization = true;
+                            this.data.readDataSource = true;
+                            this.data.writeDataSource = true;
+                            this.data.readProducts = true;
+                            this.data.writeProducts = true;
                             this.data.writeProductFootprint = true;
                             this.data.writeTask = true;
                         }

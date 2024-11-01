@@ -19,8 +19,10 @@ import { addEmissionFactorCategory } from "../emission-factor-manager.js";
 import { formatToIso8601String } from "../../utility/date-utils.js";
 import { restoreProductFootprint, convertProductFootprint } from "./product-footprint-manager.js";
 import { hasTaskPrivilege } from "../authorization.js";
+import { storeChildProductFootprint } from "../harmony/event-manager.js";
 
-let contextPath;
+/** @type {string} */
+export let contextPath;
 if(process.env.CONTEXT_PATH != null) {
     contextPath = process.env.CONTEXT_PATH;
 }else {
@@ -58,7 +60,11 @@ export async function handleEvent(session, request) {
     if(organizations == null) {
         throw ErrorResponse(ErrorCode.AuthorizationError, JSON.stringify({code: "AccessDenied", message: "Invalid organization."}));
     }
-    parentOrganizationId = organizations[0].parentOrganizationId;
+    if(organizations[0].parentOrganizationId != null) {
+        parentOrganizationId = organizations[0].parentOrganizationId;
+    }else {
+        parentOrganizationId = organizationId;
+    }
 
     if(type == null || typeof type != "string") {
         throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: "The type property is not defined in the request."}));
@@ -138,14 +144,13 @@ async function handleNotification(userId, clientOrganizationId, recipientOrganiz
         if(productFootprint == null) {
             throw ErrorResponse(ErrorCode.StateError, JSON.stringify({code: "InternalError", message: "Failed to obtain a product footprint for your system."}));
         }
-        
+
         try {
             Validator.validate(productFootprint, Spec.components.schemas.ProductFootprint, Spec.components);
         }catch(error) {
             writeError(error.message);
             throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: "The product footprint obtained from your system does not follow the Tech Spec."}));
         }
-
         try {
             await storeProductFootprint(userId, clientOrganizationId, productFootprint);
         }catch(error) {
@@ -274,7 +279,7 @@ async function handleReply(userId, clientOrganizationId, recipientOrganizationId
         throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: "The request body does not contain data.pfs."}));
     }
     
-    let tasks = await connection.select("taskId", "eventId").from("Task").where({ClientOrganizationId: recipientOrganizationId, RecipientOrganizationId: clientOrganizationId, ExternalTaskId: data.requestEventId});
+    let tasks = await connection.select("taskId", "eventId").from("Task").where({ClientOrganizationId: recipientOrganizationId, RecipientOrganizationId: clientOrganizationId, EventId: data.requestEventId});
     if(tasks.length == 0) {
         throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: `The request associated with [${data.requestEventId}] is not registered in this system.`}));
     }
@@ -284,7 +289,7 @@ async function handleReply(userId, clientOrganizationId, recipientOrganizationId
             Validator.validate(productFootprint, Spec.components.schemas.ProductFootprint, Spec.components);
         });
     }catch(error) {
-        writeError(error.message);
+        writeError(error.message+" "+JSON.stringify(data.pfs));
         throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: "The product footprint obtained from your system does not follow the Tech Spec."}));
     }
     
@@ -326,7 +331,7 @@ async function handleReject(userId, clientOrganizationId, recipientOrganizationI
         throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: "The request body does not contain data.error."}));
     }
     
-    let tasks = await connection.select("taskId", "eventId").from("Task").where({ClientOrganizationId: recipientOrganizationId, RecipientOrganizationId: clientOrganizationId, ExternalTaskId: data.requestEventId});
+    let tasks = await connection.select("taskId", "eventId").from("Task").where({ClientOrganizationId: recipientOrganizationId, RecipientOrganizationId: clientOrganizationId, EventId: data.requestEventId});
     if(tasks.length == 0) {
         throw ErrorResponse(ErrorCode.RequestError, JSON.stringify({code: "BadRequest", message: `The request associated with [${data.requestEventId}] is not registered in this system.`}));
     }
@@ -494,8 +499,8 @@ export async function sendRequest(userId, clientOrganizationId, recipientOrganiz
         }
     });
     if(response.status != 200) {
-        writeError("An error was returned in the call to Action Events for Remote Service.");
-        throw ErrorResponse(ErrorCode.StateError, "An error was returned in the call to Action Events for Remote Service.");
+        writeError(`An error was returned in the call to Action Events for Remote Service. Status: ${response.status}, Body: ${JSON.stringify(response.body)}`);
+        throw ErrorResponse(ErrorCode.RequestError, response.body.message);
     }
 }
 
@@ -532,10 +537,10 @@ export async function sendReply(userId, clientOrganizationId, productId, taskId)
     if(productFootprints.length == 0) {
         throw ErrorResponse(ErrorCode.StateError, "Invalid state.");
     }
-    productFootprints = await Promise.all(productFootprints.map(async _productFootprint => {
-        let productFootprint = await restoreProductFootprint(userId, clientOrganizationId, null, undefined, _productFootprint.productFootprintId);
-        return convertProductFootprint(productFootprint);
-    }));
+    let productFootprintId = productFootprints[0].productFootprintId;
+    let productFootprint = await restoreProductFootprint(userId, clientOrganizationId, null, undefined, productFootprintId);
+
+    let convertedProductFootprint = await convertProductFootprint(productFootprint);
 
     let accessToken = await getAccessToken(authenticateEndpoint.url, dataSource.userName, dataSource.password);
 
@@ -551,7 +556,7 @@ export async function sendReply(userId, clientOrganizationId, productId, taskId)
         time: formatToIso8601String(new Date(), true),
         data: {
             requestEventId: task.eventId,
-            pfs: productFootprints
+            pfs: [convertedProductFootprint]
         }
     });
     if(response.status != 200) {
@@ -672,7 +677,6 @@ export async function getProductFootprints(userId, organizationId, dataSourceId,
     });
     if(productFootprints.length == 0) {
         writeError(`Product footprint retrieved from the remote service does not contain any content. URL:${getFootprintsEndpoint.url}`);
-        throw ErrorResponse(ErrorCode.StateError, "Product footprint retrieved from the remote service does not contain any content.");
     }
     
     await Promise.all(productFootprints.map(async productFootprint => {
@@ -680,7 +684,7 @@ export async function getProductFootprints(userId, organizationId, dataSourceId,
             Validator.validate(productFootprint, Spec.components.schemas.ProductFootprint, Spec.components);
         }catch(error) {
             writeError(error.message);
-            throw ErrorResponse(ErrorCode.RequestError, `The product footprint obtained from the remote service does not follow the Tech Spec.`);
+            return;
         }
     
         try {
@@ -696,44 +700,47 @@ export async function getProductFootprints(userId, organizationId, dataSourceId,
 /**
  * @param {number} userId 
  * @param {number} organizationId 
- * @param {object} productFootprint 
+ * @param {object} productFootprint Pathfinder Data Model
+ * @param {number} [productFootprintId]
  */
-async function storeProductFootprint(userId, organizationId, productFootprint) {
-    let productIdEntries = convertProductIds(productFootprint.productIds);
-    if(productIdEntries.length == 0) {
-        throw ErrorResponse(ErrorCode.StateError, "Product identifiers included in the product footprint could not be interpreted by this system.");
-    }
-
-    let productIds = await Promise.all(productIdEntries.map(async productIdEntry => {
-        let records = await connection.select("ProductIdentifier.ProductId as productId")
-            .from("ProductIdentifier")
-            .leftJoin("OrganizationProduct", "OrganizationProduct.ProductId", "ProductIdentifier.ProductId")
-            .where({Type: productIdEntry.type, Code: productIdEntry.code})
-            .andWhere(function() {
-                this.where({OrganizationId: organizationId}).orWhereIn("OrganizationId", function() {
-                    this.select("organizationId").from("Organization").where({ParentOrganizationId: organizationId});
-                })
-            });
-        if(records.length == 0) {
-            return null;
-        }
-        return records[0].productId;
-    }));
-    productIds = productIds.filter(productId => productId != null);
-
+export async function storeProductFootprint(userId, organizationId, productFootprint, productFootprintId) {
     let productId;
-    if(productIds.length == 0) {
-        let result = await addProduct({userId: userId, organizationId: organizationId}, {
-            productName: productFootprint.productNameCompany,
-            description: productFootprint.productDescription,
-            cpcCode: productFootprint.productCategoryCpc,
-            identifiers: productIdEntries,
-            parentProductId: null,
-            organizationId: organizationId
-        });
-        productId = result[0].productId;
-    }else {
-        productId = productIds[0];
+    if(productFootprint.productIds != null) {
+        let productIdEntries = convertProductIds(productFootprint.productIds);
+        if(productIdEntries.length == 0) {
+            throw ErrorResponse(ErrorCode.StateError, "Product identifiers included in the product footprint could not be interpreted by this system.");
+        }
+    
+        let productIds = await Promise.all(productIdEntries.map(async productIdEntry => {
+            let records = await connection.select("ProductIdentifier.ProductId as productId")
+                .from("ProductIdentifier")
+                .leftJoin("OrganizationProduct", "OrganizationProduct.ProductId", "ProductIdentifier.ProductId")
+                .where({Type: productIdEntry.type, Code: productIdEntry.code})
+                .andWhere(function() {
+                    this.where({OrganizationId: organizationId}).orWhereIn("OrganizationId", function() {
+                        this.select("organizationId").from("Organization").where({ParentOrganizationId: organizationId});
+                    })
+                });
+            if(records.length == 0) {
+                return null;
+            }
+            return records[0].productId;
+        }));
+        productIds = productIds.filter(productId => productId != null);
+    
+        if(productIds.length == 0) {
+            let result = await addProduct({userId: userId, organizationId: organizationId}, {
+                productName: productFootprint.productNameCompany,
+                description: productFootprint.productDescription,
+                cpcCode: productFootprint.productCategoryCpc,
+                identifiers: productIdEntries,
+                parentProductId: null,
+                organizationId: organizationId
+            });
+            productId = result.productId;
+        }else {
+            productId = productIds[0];
+        }
     }
 
     let emissionFactorCategoryIds;
@@ -748,59 +755,17 @@ async function storeProductFootprint(userId, organizationId, productFootprint) {
         }));
     }
 
-    let records = await connection.select("productFootprintId").from("ProductFootprint").where({DataId: productFootprint.id, Status: "Active"});
-    if(records.length == 0) {
-        await addProductFootprint({userId: userId, organizationId: organizationId}, {
-            dataId: productFootprint.id,
-            version: productFootprint.version,
-            statusComment: productFootprint.statusComment,
-            availableStartDate: productFootprint.validityPeriodStart,
-            availableEndDate: productFootprint.validityPeriodEnd,
-            productId: productId,
-            comment: productFootprint.comment,
-            amountUnit: convertAmountUnit(productFootprint.pcf.declaredUnit),
-            amount: productFootprint.pcf.unitaryProductAmount,
-            carbonFootprint: productFootprint.pcf.pCfExcludingBiogenic,
-            carbonFootprintIncludingBiogenic: productFootprint.pcf.pCfIncludingBiogenic,
-            fossilEmissions: productFootprint.pcf.fossilGhgEmissions,
-            fossilCarbonContent: productFootprint.pcf.fossilCarbonContent,
-            biogenicCarbonContent: productFootprint.pcf.biogenicCarbonContent,
-            dLucEmissions: productFootprint.pcf.dLucGhgEmissions,
-            landManagementEmissions: productFootprint.pcf.landManagementGhgEmissions,
-            otherBiogenicEmissions: productFootprint.pcf.otherBiogenicGhgEmissions,
-            iLucGhgEmissions: productFootprint.pcf.iLucGhgEmissions,
-            biogenicRemoval: productFootprint.pcf.biogenicCarbonWithdrawal,
-            aircraftEmissions: productFootprint.pcf.aircraftGhgEmissions,
-            gwpReports: productFootprint.pcf.ipccCharacterizationFactorsSources,
-            accountingStandards: convertAccountingStandard(productFootprint.pcf.crossSectoralStandardsUsed),
-            carbonAccountingRules: convertCarbonAccountingRule(productFootprint.pcf.productOrSectorSpecificRules),
-            biogenicAccountingStandard: productFootprint.pcf.biogenicAccountingMethodology,
-            boundaryProcesses: productFootprint.pcf.boundaryProcessesDescription,
-            measurementStartDate: productFootprint.pcf.referencePeriodStart,
-            measurementEndDate: productFootprint.pcf.referencePeriodEnd,
-            region: productFootprint.pcf.geographyRegionOrSubregion,
-            country: productFootprint.pcf.geographyCountry,
-            subdivision: productFootprint.pcf.geographyCountrySubdivision,
-            inventoryDatabases: emissionFactorCategoryIds,
-            exemptedEmissionsRate: productFootprint.pcf.exemptedEmissionsPercent,
-            exemptedEmissionsReason: productFootprint.pcf.exemptedEmissionsDescription,
-            packagingGhgEmissions: productFootprint.pcf.packagingGhgEmissions,
-            allocationRules: productFootprint.pcf.allocationRulesDescription,
-            uncertaintyAssessment: productFootprint.pcf.uncertaintyAssessmentDescription,
-            primaryDataShare: productFootprint.pcf.primaryDataShare,
-            dataQualityIndicator: convertDataQualityIndicator(productFootprint.pcf.dqi),
-            assurance: convertAssurance(productFootprint.pcf.assurance)
-        });
-    }else {
-        await updateProductFootprint({userId: userId, organizationId: organizationId}, {
-            productFootprintId: records[0].productFootprintId,
-            dataId: productFootprint.id,
-            version: productFootprint.version,
-            statusComment: productFootprint.statusComment,
-            availableStartDate: productFootprint.validityPeriodStart,
-            availableEndDate: productFootprint.validityPeriodEnd,
-            productId: productId,
-            comment: productFootprint.comment,
+    let record = {
+        dataId: productFootprint.id,
+        version: productFootprint.version,
+        statusComment: productFootprint.statusComment,
+        availableStartDate: productFootprint.validityPeriodStart,
+        availableEndDate: productFootprint.validityPeriodEnd,
+        productId: productId,
+        comment: productFootprint.comment
+    };
+    if(productFootprint.pcf != null) {
+        Object.assign(record, {
             amountUnit: convertAmountUnit(productFootprint.pcf.declaredUnit),
             amount: productFootprint.pcf.unitaryProductAmount,
             carbonFootprint: productFootprint.pcf.pCfExcludingBiogenic,
@@ -835,6 +800,39 @@ async function storeProductFootprint(userId, organizationId, productFootprint) {
             assurance: convertAssurance(productFootprint.pcf.assurance)
         });
     }
+
+    if(productFootprintId != null) {
+        let records = await connection.select("productFootprintId", "organizationId").from("ProductFootprint").where({ProductFootprintId: productFootprintId});
+        if(records.length == 0) {
+            throw ErrorResponse(ErrorCode.StateError, `The product footprint [${productFootprintId}] had been removed.`)
+        }
+        record.productFootprintId = records[0].productFootprintId;
+        record.updateCheck = false;
+        record.notifyRequired = false;
+        record.taskCheck = false;
+        record.syncRequired = false;
+        await updateProductFootprint({userId: userId, organizationId: organizationId}, record);
+        productFootprint.productFootprintId = record.productFootprintId;
+    }else {
+        let records = await connection.select("productFootprintId", "organizationId").from("ProductFootprint").where({DataId: productFootprint.id}).orderBy("UpdatedDate", "desc");
+        if(records.length == 0) {
+            record.taskCheck = false;
+            record.syncRequired = false;
+            let result = await addProductFootprint({userId: userId, organizationId: organizationId}, record);
+            productFootprint.productFootprintId = result.productFootprintId;
+        }else {
+            record.productFootprintId = records[0].productFootprintId;
+            record.updateCheck = false;
+            record.notifyRequired = false;
+            record.taskCheck = false;
+            record.syncRequired = false;
+            await updateProductFootprint({userId: userId, organizationId: organizationId}, record);
+            productFootprint.productFootprintId = record.productFootprintId;
+        }
+    }
+
+    // LABLAB: Additional storage processing if a product footprint extension is defined and a breakdown is set.
+    await storeChildProductFootprint(userId, organizationId, productFootprint);
 }
 
 /**

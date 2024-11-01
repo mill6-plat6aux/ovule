@@ -687,6 +687,7 @@ class ProductionActivityRegisterView extends ViewController {
                     };
                     this.data.productionActivities.push(record);
                     this.reloadData();
+                    this.reloadView();
                 }}, ["Add"])
             ]),
             Table(".list", {

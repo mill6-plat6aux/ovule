@@ -6,12 +6,13 @@
 // @ts-check
 
 import { connection } from "../utility/database.js";
-import { ErrorResponse, ErrorCode } from "arbuscular";
+import { ErrorResponse, ErrorCode, writeLog, LogLevel } from "arbuscular";
 import { hasProductFootprintPrivilege } from "./authorization.js";
 import { v4 as uuid } from "uuid";
 import { formatToIso8601String } from "../utility/date-utils.js"
 import { sendNotification, sendReply } from "./pathfinder/event-manager.js";
 import { restoreReceivedTasksByProduct, updateTask } from "./task-manager.js";
+import { syncProductFootprintToHarmony } from "./harmony/product-footprint-manager.js";
 
 /**
  * @type {import("arbuscular").handle}
@@ -22,7 +23,10 @@ export async function getProductFootprints(session, request) {
         throw ErrorResponse(ErrorCode.AuthorizationError, "Invalid access.");
     }
     let organizationId = session.organizationId;
-    let productId = request.productId;
+    let productId;
+    if(request != null) {
+        productId = request.productId;
+    }
     let query = connection.select(
         "productFootprintId",
         "dataId",
@@ -44,8 +48,7 @@ export async function getProductFootprints(session, request) {
     if(productId != null) {
         query.andWhere({ProductId: productId});
     }
-    let productFootprints = await query;
-    return productFootprints;
+    return await query;
 }
 
 /**
@@ -113,7 +116,9 @@ async function restoreProductFootprint(organizationId, productFootprintId) {
         })
     })
     .andWhere({ProductFootprintId: productFootprintId});
-    if(productFootprints.length == 0) throw ErrorResponse(ErrorCode.NotFoundError, "Not found.");
+    if(productFootprints.length == 0) {
+        throw ErrorResponse(ErrorCode.NotFoundError, "Not found.");
+    }
     let productFootprint = productFootprints[0];
     
     // Date type cast
@@ -278,10 +283,16 @@ export async function addProductFootprint(session, request) {
     if(availableEndDate != null) {
         availableEndDate = new Date(availableEndDate);
     }
+    
+    let taskCheck = request.taskCheck != null ? request.taskCheck : true;
+    let syncRequired = request.syncRequired != null ? request.syncRequired : true;
+
     let transaction = await connection.transaction();
     let productFootprintId;
     try {
-        await transaction("ProductFootprint").update({Status: "Deprecated"}).where({ProductId: productId});
+        if(productId != null) {
+            await transaction("ProductFootprint").update({Status: "Deprecated"}).where({ProductId: productId});
+        }
         let ids = await transaction.insert({
             DataId: dataId,
             Version: version,
@@ -376,19 +387,36 @@ export async function addProductFootprint(session, request) {
         throw error;
     }
 
-    // If this product footprint is requested by another organization, a response will be sent.
-    let tasks = await restoreReceivedTasksByProduct(userId, organizationId, productId);
-    await Promise.all(tasks.map(async task => {
-        if(task.taskId == null) return;
-        
-        await sendReply(userId, organizationId, productId, task.taskId);
+    writeLog(`Product footprint [${productFootprintId}] has been registered by the user [${userId}].`);
+    writeLog(`ProductFootprintId:${productFootprintId} OrganizationId:${organizationId} ProductId:${productId} DataId: ${dataId}`, LogLevel.debug);
 
-        await updateTask({userId, organizationId}, {
-            taskId: task.taskId,
-            status: "Completed",
-            replyMessage: null
-        });
-    }));
+    // If this product footprint is requested by another organization, a response will be sent.
+    if(taskCheck && productId != null) {
+        let tasks = await restoreReceivedTasksByProduct(userId, organizationId, productId);
+        await Promise.all(tasks.map(async task => {
+            if(task.taskId == null) return;
+
+            await sendReply(userId, organizationId, productId, task.taskId);
+
+            await updateTask({userId, organizationId}, {
+                taskId: task.taskId,
+                status: "Completed",
+                replyMessage: null
+            });
+        }));
+    }
+
+    // If it is own product, sync it to Harmony
+    if(syncRequired && productId != null) {
+        let products = await connection.select("organizationId").from("OrganizationProduct").where({ProductId: productId});
+        if(products.length == 0) {
+            throw ErrorResponse(ErrorCode.StateError, "Invalid state.");
+        }
+        let product = products[0];
+        if(organizationId == product.organizationId) {
+            await syncProductFootprintToHarmony(userId, organizationId, dataId, productId);
+        }
+    }
 
     return {productFootprintId: productFootprintId};
 }
@@ -454,6 +482,12 @@ export async function updateProductFootprint(session, request) {
     if(availableEndDate != null) {
         availableEndDate = new Date(availableEndDate);
     }
+
+    let updateCheck = request.updateCheck != null ? request.updateCheck : true;
+    let notifyRequired = request.notifyRequired != null ? request.notifyRequired : true;
+    let taskCheck = request.taskCheck != null ? request.taskCheck : true;
+    let syncRequired = request.syncRequired != null ? request.syncRequired : true;
+
     let dataId;
     let transaction = await connection.transaction();
     try {
@@ -462,18 +496,23 @@ export async function updateProductFootprint(session, request) {
         dataId = productFootprint.dataId;
         let version = productFootprint.version;
 
-        // Check for differences
-        let verificationResults = verifyUpdate(productFootprint, request);
-        if(verificationResults == VersionUpType.minor) {
-            // For minor version upgrades, the version is incremented. 
-            version = version+1;
-        }else if(verificationResults == VersionUpType.major) {
-            // For major version upgrades, set the status of past data to Deprecated.
-            await transaction("ProductFootprint").update({Status: "Deprecated", UpdatedDate: new Date()}).where({ProductFootprintId: productFootprintId, OrganizationId: organizationId});
-            dataId = uuid();
-            version = 0;
+        let verificationResults;
+        if(updateCheck) {
+            // Check for differences
+            let verificationResults = verifyUpdate(productFootprint, request);
+            if(verificationResults == VersionUpType.minor) {
+                // For minor version upgrades, the version is incremented. 
+                version = version+1;
+            }else if(verificationResults == VersionUpType.major) {
+                // For major version upgrades, set the status of past data to Deprecated.
+                await transaction("ProductFootprint").update({Status: "Deprecated", UpdatedDate: new Date()}).where({ProductFootprintId: productFootprintId, OrganizationId: organizationId});
+                dataId = uuid();
+                version = 0;
+            }else {
+                return;
+            }
         }else {
-            return;
+            verificationResults = VersionUpType.minor;
         }
 
         let record = {
@@ -556,8 +595,8 @@ export async function updateProductFootprint(session, request) {
                 await transaction.insert({ProductFootprintId: productFootprintId, EmissionFactorCategoryId: inventoryDatabase.emissionFactorCategoryId}).into("InventoryDatabaseReference");
             }));
         }
+        await transaction("DataQualityIndicator").delete().where({ProductFootprintId: productFootprintId});
         if(dataQualityIndicator != null) {
-            await transaction("DataQualityIndicator").delete().where({ProductFootprintId: productFootprintId});
             await transaction.insert({
                 ProductFootprintId: productFootprintId, 
                 Coverage: dataQualityIndicator.coverage,
@@ -568,8 +607,8 @@ export async function updateProductFootprint(session, request) {
                 Reliability: dataQualityIndicator.reliability
             }).into("DataQualityIndicator");
         }
+        await transaction("Assurance").delete().where({ProductFootprintId: productFootprintId});
         if(assurance != null) {
-            await transaction("Assurance").delete().where({ProductFootprintId: productFootprintId});
             await transaction.insert({
                 ProductFootprintId: productFootprintId, 
                 Coverage: assurance.coverage,
@@ -587,22 +626,35 @@ export async function updateProductFootprint(session, request) {
         throw error;
     }
 
+    writeLog(`Product footprint [${productFootprintId}] has been updated by the user [${userId}].`);
+    writeLog(`ProductFootprintId:${productFootprintId} OrganizationId:${organizationId} ProductId:${productId} DataId: ${dataId}`, LogLevel.debug);
+
     // If the product in question has a data source associated with it, notify that endpoint.
-    await sendNotification(userId, organizationId, null, productId, dataId);
+    if(notifyRequired && productId != null) {
+        await sendNotification(userId, organizationId, null, productId, dataId);
+    }
 
     // If this product footprint is requested by another organization, a response will be sent.
-    let tasks = await restoreReceivedTasksByProduct(userId, organizationId, productId);
-    await Promise.all(tasks.map(async task => {
-        if(task.taskId == null) return;
-
-        await sendReply(userId, organizationId, productId, task.taskId);
-
-        await updateTask({userId, organizationId}, {
-            taskId: task.taskId,
-            status: "Completed",
-            replyMessage: null
-        });
-    }));
+    if(productId != null) {
+        if(taskCheck) {
+            let tasks = await restoreReceivedTasksByProduct(userId, organizationId, productId);
+            await Promise.all(tasks.map(async task => {
+                if(task.taskId == null) return;
+        
+                await sendReply(userId, organizationId, productId, task.taskId);
+        
+                await updateTask({userId, organizationId}, {
+                    taskId: task.taskId,
+                    status: "Completed",
+                    replyMessage: null
+                });
+            }));
+        }
+    
+        if(syncRequired) {
+            await syncProductFootprintToHarmony(userId, organizationId, dataId, productId);
+        }
+    }
 
     return {productFootprintId: productFootprintId};
 }
@@ -713,8 +765,8 @@ function verifyUpdate(object1, object2) {
 
     let accountingStandards1 = object1.accountingStandards;
     let accountingStandards2 = object2.accountingStandards;
-    if(gwpReports1 != null) {
-        if(gwpReports2 != null) {
+    if(accountingStandards1 != null) {
+        if(accountingStandards2 != null) {
             result = accountingStandards1.every(entry => accountingStandards2.includes(entry));
             if(result) {
                 result = accountingStandards2.every(entry => accountingStandards1.includes(entry));
@@ -723,9 +775,7 @@ function verifyUpdate(object1, object2) {
             result = false;
         }
     }else {
-        if(gwpReports2 != null) {
-            result = false;
-        }
+        result = false;
     }
     if(!result) {
         return VersionUpType.major;

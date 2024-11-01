@@ -102,9 +102,9 @@ class LoginView extends ViewController {
                     opacity: 0
                 }}, [
                     View(".title", {align: "center", style:{
-                        margin: [32,0]
+                        margin: [32,0,64,0]
                     }}, [
-                        InlineImage({style:{height: 64, margin: [0,0,16,0]}, src: "images/title.svg"}),
+                        InlineImage({style:{height: 32, margin: [0,0,16,0]}, src: "images/title.svg"}),
                         View({style:{"font-size": "x-small"}}, ["Product Footprint Management System"])
                     ]),
                     HtmlTag("form", [

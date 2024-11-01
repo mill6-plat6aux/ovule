@@ -9,6 +9,15 @@ interfaces:
     authorization:
       module: "./server/logic/authentication.js"
       function: "authorize"
+  - contextPath: "/lablab"
+    interface: "./server/interface/lablab.yaml"
+    route: "./server/routes/lablab.yaml"
+    authentication:
+      module: "./server/logic/authentication.js"
+      function: "authenticate"
+    authorization:
+      module: "./server/logic/authentication.js"
+      function: "authorize"
   - contextPath: "/pathfinder"
     interface: "./server/interface/pathfinder-2.2.0.yaml"
     route: "./server/routes/pathfinder.yaml"
@@ -17,6 +26,17 @@ interfaces:
       function: "authenticate"
     authorization:
       module: "./server/logic/pathfinder/authentication.js"
+      function: "authorize"
+    customErrorHeaders:
+      "Content-Type": "application/json"
+  - contextPath: "/harmony"
+    interface: "./server/interface/harmony-client.yaml"
+    route: "./server/routes/harmony-client.yaml"
+    authentication:
+      module: "./server/logic/harmony/authentication.js"
+      function: "authenticate"
+    authorization:
+      module: "./server/logic/harmony/authentication.js"
       function: "authorize"
     customErrorHeaders:
       "Content-Type": "application/json"

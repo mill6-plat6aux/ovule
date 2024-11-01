@@ -1,50 +1,185 @@
 services:
-  ovule-database1:
+
+  lablab-db1:
     platform: linux/arm64
     image: mysql
-    container_name: ovule-database1
+    container_name: lablab-db1
     user: 1000:1000
     environment:
-      MYSQL_ROOT_PASSWORD: "0WtTNy2C"
-      MYSQL_USER: ovule
-      MYSQL_PASSWORD: "6ZOX6dmi"
-      MYSQL_DATABASE: ovule
+      MYSQL_ROOT_PASSWORD: "zJ2Kob7P"
+      MYSQL_USER: lablab
+      MYSQL_PASSWORD: "nCYZPBo0"
+      MYSQL_DATABASE: lablab
     volumes:
-      - ./database/ovule.sql:/docker-entrypoint-initdb.d/ovule.sql
-      - ./database/demo1/users.sql:/docker-entrypoint-initdb.d/users.sql
+      - ./database/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./database/lablab.sql:/docker-entrypoint-initdb.d/1_lablab.sql
+      - ./database/demo1/users.sql:/docker-entrypoint-initdb.d/2_users.sql
       - ./database/demo1/data:/var/lib/mysql
     ports:
-      - 13306:3306
-  ovule-server1:
+      - 3307:3306
+    networks:
+      - harmony_network
+  lablab-server1:
     platform: linux/arm64
-    image: ovule-server
-    container_name: ovule-server1
+    image: lablab-server
+    container_name: lablab-server1
     build:
       context: .
       dockerfile: Dockerfile_server
     environment:
-      CONTEXT_PATH: http://ovule-server1:3000
-      DATABASE_HOST: ovule-database1
+      CONTEXT_PATH: http://lablab-client1/server
+      DEFAULT_PROTOCOL: http
+      DATABASE_HOST: lablab-db1
       DATABASE_PORT: 3306
-      DATABASE_USERNAME: ovule
-      DATABASE_PASSWORD: 6ZOX6dmi
-      DATABASE_DATABASE: ovule
+      DATABASE_USERNAME: lablab
+      DATABASE_PASSWORD: nCYZPBo0
+      DATABASE_DATABASE: lablab
+    volumes:
+      - ./credentials/demo1:/app/credentials
     ports:
-      - 3000:3000
+      - 3001:3000
+    networks:
+      - harmony_network
     depends_on:
-      - ovule-database1
-  ovule-client1:
+      - lablab-db1
+  lablab-client1:
     platform: linux/arm64
-    image: ovule-client
-    container_name: ovlue-client1
+    image: lablab-client1
+    container_name: lablab-client1
     build:
       context: .
       dockerfile: Dockerfile_client
-    environment:
-      CONTEXT_PATH: http://localhost:8080/server
+      args:
+        - CONTEXT_PATH=http://localhost:3002/server
     volumes:
       - ./web/demo1/proxy.conf:/etc/nginx/conf.d/proxy.conf
     ports:
-      - 8080:80
+      - 3002:80
+    networks:
+      - harmony_network
     depends_on:
-      - ovule-server1
+      - lablab-server1
+
+  lablab-db2:
+    platform: linux/arm64
+    image: mysql
+    container_name: lablab-db2
+    user: 1000:1000
+    environment:
+      MYSQL_ROOT_PASSWORD: "42NDvxVi"
+      MYSQL_USER: lablab
+      MYSQL_PASSWORD: "i9RFSYgH"
+      MYSQL_DATABASE: lablab
+    volumes:
+      - ./database/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./database/lablab.sql:/docker-entrypoint-initdb.d/1_lablab.sql
+      - ./database/demo2/users.sql:/docker-entrypoint-initdb.d/2_users.sql
+      - ./database/demo2/data:/var/lib/mysql
+    ports:
+      - 3308:3306
+    networks:
+      - harmony_network
+  lablab-server2:
+    platform: linux/arm64
+    image: lablab-server
+    container_name: lablab-server2
+    build:
+      context: .
+      dockerfile: Dockerfile_server
+    environment:
+      CONTEXT_PATH: http://lablab-client2/server
+      DEFAULT_PROTOCOL: http
+      DATABASE_HOST: lablab-db2
+      DATABASE_PORT: 3306
+      DATABASE_USERNAME: lablab
+      DATABASE_PASSWORD: i9RFSYgH
+      DATABASE_DATABASE: lablab
+    volumes:
+      - ./credentials/demo2:/app/credentials
+    ports:
+      - 3003:3000
+    networks:
+      - harmony_network
+    depends_on:
+      - lablab-db2
+  lablab-client2:
+    platform: linux/arm64
+    image: lablab-client2
+    container_name: lablab-client2
+    build:
+      context: .
+      dockerfile: Dockerfile_client
+      args:
+        - CONTEXT_PATH=http://localhost:3004/server
+    volumes:
+      - ./web/demo2/proxy.conf:/etc/nginx/conf.d/proxy.conf
+    ports:
+      - 3004:80
+    networks:
+      - harmony_network
+    depends_on:
+      - lablab-server2
+
+  lablab-db3:
+    platform: linux/arm64
+    image: mysql
+    container_name: lablab-db3
+    user: 1000:1000
+    environment:
+      MYSQL_ROOT_PASSWORD: "APpi4fXQ"
+      MYSQL_USER: lablab
+      MYSQL_PASSWORD: "Os2ShVxS"
+      MYSQL_DATABASE: lablab
+    volumes:
+      - ./database/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./database/lablab.sql:/docker-entrypoint-initdb.d/1_lablab.sql
+      - ./database/demo3/users.sql:/docker-entrypoint-initdb.d/2_users.sql
+      - ./database/demo3/data:/var/lib/mysql
+    ports:
+      - 3309:3306
+    networks:
+      - harmony_network
+  lablab-server3:
+    platform: linux/arm64
+    image: lablab-server
+    container_name: lablab-server3
+    build:
+      context: .
+      dockerfile: Dockerfile_server
+    environment:
+      CONTEXT_PATH: http://lablab-client3/server
+      DEFAULT_PROTOCOL: http
+      DATABASE_HOST: lablab-db3
+      DATABASE_PORT: 3306
+      DATABASE_USERNAME: lablab
+      DATABASE_PASSWORD: Os2ShVxS
+      DATABASE_DATABASE: lablab
+    volumes:
+      - ./credentials/demo3:/app/credentials
+    ports:
+      - 3005:3000
+    networks:
+      - harmony_network
+    depends_on:
+      - lablab-db3
+  lablab-client3:
+    platform: linux/arm64
+    image: lablab-client3
+    container_name: lablab-client3
+    build:
+      context: .
+      dockerfile: Dockerfile_client
+      args:
+        - CONTEXT_PATH=http://localhost:3006/server
+    volumes:
+      - ./web/demo3/proxy.conf:/etc/nginx/conf.d/proxy.conf
+    ports:
+      - 3006:80
+    networks:
+      - harmony_network
+    depends_on:
+      - lablab-server3
+
+networks:
+  harmony_network:
+    external: true

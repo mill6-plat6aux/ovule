@@ -6,15 +6,10 @@
         </picture>
     </div>
     Product Footprint Management System
-    <br/><br/>
+    <br/><br/><br/>
 </div>
 
-
-This application is the product footprint management system implemented in strict accordance with [the technical specifications](https://wbcsd.github.io/tr/data-exchange-protocol/) defined by WBCSD/PACT.
-
-Please note, however, that it is **not** certified by WBCSD/PACT.
-
-You may use this application under [the license](LICENSE). If you need support, please post to [the forum](https://github.com/mill6-plat6aux/ovule/issues) of this repository.
+LABLAB is the application that forks ovule and supports Pathfinder Harmony.
 
 
 ## Requirements
@@ -24,21 +19,19 @@ You may use this application under [the license](LICENSE). If you need support, 
 If Node.js is not installed on your system, see [here](https://nodejs.org/en/learn/getting-started/how-to-install-nodejs).
 
 
-## Launch Database & Server
+## Prepare
+
+Create a Docker Network and ensure that Pathfinder Harmony and LABLAB are deployed within it.
+
+
+## Launch
+
+Launch three containers as in the demo.
 
 ```sh
 docker compose up
 ```
 
-## Launch Client
-
-Access the following URL using a web browser.
-
-```
-http://localhost:8080/client/
-```
-
-For an account, see `database/demo1/users.sql`.
 
 ## License
 

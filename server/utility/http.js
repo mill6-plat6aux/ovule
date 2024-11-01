@@ -5,6 +5,7 @@
 
 // @ts-check
 
+import { createVerify } from "node:crypto";
 import querystring from "node:querystring";
 
 /**
@@ -72,4 +73,78 @@ export async function request(method, requestPath, requestHeader, requestBody) {
         }
         connection.end();
     });
+}
+
+/**
+ * @param {import("http").IncomingMessage} request 
+ * @param {string} publicKey 
+ * @param {string} algorithm 
+ * @returns {boolean}
+ */
+export function verifySignature(request, publicKey, algorithm) {
+    let signatureInput = request.headers["signature-input"];
+    let signature = request.headers["signature"];
+    if(signatureInput == null || signature == null || typeof signatureInput != "string" || typeof signature != "string") return true;
+
+    let signatureString = signature.substring(signature.indexOf(":")+1, signature.lastIndexOf(":"));
+
+    let contentDigest = request.headers["content-digest"];
+
+    let capturing = false;
+    let property = "";
+    let properties = [];
+    for(let i=0; i<signatureInput.length; i++) {
+        let c = signatureInput.charAt(i);
+        if(c == ')') {
+            break;
+        }else if(c == '"') {
+            if(!capturing) {
+                capturing = true;
+            }else {
+                properties.push(property);
+                capturing = false;
+                property = "";
+            }
+        }else if(c != '(' && c != ' ') {
+            if(capturing) {
+                property += c;
+            }
+        }
+    }
+
+    let protocol = request.headers["x-forwarded-proto"];
+    if(protocol == null) protocol = "https";
+    let path = request.headers["x-forwarded-path"];
+    if(path == null) path = "";
+    let url = new URL(`${protocol}://${request.headers.host}${path}${request.url}`);
+
+    let reproducedSignature = "";
+    properties.forEach(property => {
+        if(reproducedSignature.length > 0) {
+            reproducedSignature += "\n";
+        }
+        if(property == "@method") {
+            reproducedSignature += `"@method": ${request.method != null ? request.method.toLocaleLowerCase() : "get"}`;
+        }else if(property == "@target-uri") {
+            let protocol = request.headers["x-forwarded-proto"];
+            if(protocol == null) protocol = "https";
+            reproducedSignature += `"@target-uri": ${url.href}`;
+        }else if(property == "@authority") {
+            reproducedSignature += `"@authority": ${request.headers.host}`;
+        }else if(property == "@scheme") {
+            let protocol = request.headers["x-forwarded-proto"];
+            if(protocol == null) protocol = "https";
+            reproducedSignature += `"@scheme": ${protocol}`;
+        }else if(property == "@request-target") {
+            reproducedSignature += `"@request-target": ${request.url}`;
+        }else if(property == "@path") {
+            reproducedSignature += `"@path": ${url.pathname}`;
+        }else if(property == "@query") {
+            reproducedSignature += `"@query": ${url.search}`;
+        }else if(property == "content-digest") {
+            reproducedSignature += `"content-digest": ${contentDigest}`;
+        }
+    });
+
+    return createVerify(algorithm).update(reproducedSignature).end().verify(publicKey, signatureString, "base64");
 }

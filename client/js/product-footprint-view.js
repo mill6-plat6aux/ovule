@@ -104,12 +104,35 @@ class ProductFootprintView extends ViewController {
                     columns: [
                         {label: "Updated Date", style: {
                             padding: [0,4],
-                            width: 120,
+                            width: 180,
                             "vertical-align": "middle",
                             "line-height": "1em"
                         }, dataKey: "updatedDate", dataHandler: (cell, value, record) => {
-                            if(value == null) return;
-                            cell.innerText = DateUtil.format(new Date(value), dateFormat);
+                            let iconPath;
+                            if(record.open) {
+                                iconPath = "images/product-open.svg";
+                            }else {
+                                iconPath = "images/product-close.svg";
+                            }
+                            let icon = View({style: {
+                                display: "inline-block",
+                                margin: [0,0,0,24*record.depth],
+                                width: 32,
+                                height: 32,
+                                "background-image": iconPath,
+                                "background-repeat": "no-repeat",
+                                "background-size": 20,
+                                "background-position": "center",
+                                "vertical-align": "middle",
+                                cursor: "pointer"
+                            }, tapHandler: event => {
+                                event.stopPropagation();
+                                this.selectRow(record);
+                            }});
+                            cell.appendChild(icon);
+
+                            let dateString = value != null ? DateUtil.format(new Date(value), dateFormat) : "";
+                            cell.appendChild(HtmlTag("span", ".nameView", [dateString]));
                         }},
                         {label: "Version", style: {
                             padding: [0,4],
@@ -150,6 +173,7 @@ class ProductFootprintView extends ViewController {
                             "font-size": "small",
                             width: 120,
                         }, dataKey: "amountUnit", dataHandler: (cell, value, record) => {
+                            if(value == null) return;
                             cell.innerHTML = "<span>kg-CO<sub>2</sub>e / "+value+"</span>";
                         }}
                     ],
@@ -158,6 +182,25 @@ class ProductFootprintView extends ViewController {
                     rowHighlightStyle: "rgba(0,0,0,0.1)",
                     animate: true,
                     tapHandler: record => {
+                        // If data is not yet obtained, confirm whether or not to request.
+                        if(record.depth != null && record.productId == null) {
+                            Controls.Message("This product footprint does not include data.\nWould you like to make a request to the data holding company?", "confirm", "Request", () => {
+                                Module.loadLogic("js/datasource-view.js", () => {
+                                    let editor = new DataSourceRequestView();
+                                    editor.data = {
+                                        productFootprintId: record.productFootprintId,
+                                        message: null
+                                    };
+                                    editor.applyHandler = record => {
+                                        HttpConnection.request(ContextPath+"/lablab"+"/contract/request", "POST", record).then(response => {
+                                            Controls.Message("You have requested other company's data source from Pathfinder Harmony.\nYou can check the status of your request in Task.\nWhen other company responds, the data source will be automatically added here.", "info", function() {});
+                                        });
+                                    };
+                                });
+                            }, "Cancel", function(){});
+                            return;
+                        }
+
                         HttpConnection.request(ContextPath+"/product-footprints/"+record.productFootprintId, "GET").then(response => {
                             this.showDetailView(response);
                         });
@@ -219,6 +262,17 @@ class ProductFootprintView extends ViewController {
             Controls.Message("First click on the Register button to register your product.", "info", "OK", function() {});
             return;
         }
+        let parentRecord = this.data.productFootprints.filter(record => record.open).reduce((result, record) => {
+            if(result != null) {
+                if(result.depth < record.depth) {
+                    return record;
+                }else {
+                    return result;
+                }
+            }else {
+                return record;
+            }
+        }, null);
         if(this.data.productFootprints.length == 0) {
             let record = {
                 productFootprintId: null,
@@ -265,7 +319,7 @@ class ProductFootprintView extends ViewController {
                 dataQualityIndicator: null,
                 assurance: null
             };
-            this.showDetailView(record);
+            this.showDetailView(record, parentRecord);
         }else {
             let record = this.data.productFootprints[0];
             HttpConnection.request(ContextPath+"/product-footprints/"+record.productFootprintId, "GET").then(response => {
@@ -274,15 +328,28 @@ class ProductFootprintView extends ViewController {
         }
     }
 
-    showDetailView(record) {
+    /**
+     * @param {object} record 
+     * @param {object} [parentRecord] 
+     */
+    showDetailView(record, parentRecord) {
         let registerView = new ProductFootprintRegisterView();
         registerView.productionActivities = this.data.productionActivities;
         registerView.data = record;
         if(record.productFootprintId == null) { 
             registerView.applyHandler = record => {
                 HttpConnection.request(ContextPath+"/product-footprints", "POST", record).then(response => {
-                    this.loadProductFootprints();
-                    this.dismissDetailView();
+                    if(parentRecord == null) {
+                        this.loadProductFootprints();
+                        this.dismissDetailView();
+                    }else {
+                        HttpConnection.request(ContextPath+"/product-footprint-references/"+response.productFootprintId, "PUT", {
+                            parentProductFootprintId: parentRecord.productFootprintId
+                        }).then(() => {
+                            this.loadProductFootprints();
+                            this.dismissDetailView();
+                        });
+                    }
                 });
             };
         }else {
@@ -305,6 +372,7 @@ class ProductFootprintView extends ViewController {
 
         let listView = document.querySelector("body > .main > .contents > .productInfo > .productDetail");
         let detailView = this.view.querySelector(".productFootprintDetail");
+        listView.querySelector(".contents").scrollTop = 0;
         detailView.style.visibility = "visible";
         let width = listView.offsetWidth+16;
         let listViewX = listView.offsetLeft-16;
@@ -326,6 +394,42 @@ class ProductFootprintView extends ViewController {
         }, FunctionalAnimation.methods.easeInOut, 300).start().finish(() => {
             detailView.style.visibility = "hidden";
         });
+    }
+
+    selectRow(selectedRecord) {
+        let depth = selectedRecord.depth != null ? selectedRecord.depth : 0;
+        let selectedIndex = this.data.productFootprints.findIndex(record => record.productFootprintId == selectedRecord.productFootprintId);
+
+        if(!selectedRecord.open) {
+            this.selectedProduct = selectedRecord;
+            selectedRecord.open = true;
+
+            HttpConnection.request(ContextPath+"/lablab"+"/product-footprints?parentProductFootprintId="+selectedRecord.productFootprintId, "GET").then(productFootprints => {
+                for(let i=productFootprints.length-1; i>=0; i--) {
+                    let record = productFootprints[i];
+                    record.depth = depth+1;
+                    record.open = false;
+                    this.data.productFootprints.splice(selectedIndex+1, 0, record);
+                }
+                this.reloadData();
+                this.reloadView();
+            });
+        }else {
+            this.selectedProduct = null;
+            selectedRecord.open = false;
+
+            let index = -1;
+            for(let i=selectedIndex+1; i<this.data.productFootprints.length; i++) {
+                let record = this.data.productFootprints[i];
+                if(record.depth <= depth) break;
+                index = i;
+            }
+            if(index != -1) {
+                for(let i=index; i>selectedIndex; i--) {
+                    this.productFootprints.data.splice(i, 1);
+                }
+            }
+        }
     }
 }
 
@@ -427,8 +531,8 @@ class ProductFootprintRegisterView extends ViewController {
                         }}),
                         RequiredLabel()
                     ]),
-                    InputComposite(".carbonContentField", {label: "Fossil carbon content", labelColor: "black", style: {display: "inline-block", width: "calc(50% - 4px)", position: "relative", margin: [4,0,4,4], "vertical-align": "top"}}, [
-                        NumericField({dataKey: "fossilCarbonContent", height: 24, unit: "kg-C / kg", required: "required", tabIndex:(tabIndex++), changeHandler: () => {
+                    InputComposite({label: "Fossil carbon content", labelColor: "black", style: {display: "inline-block", width: "calc(50% - 4px)", position: "relative", margin: [4,0,4,4], "vertical-align": "top"}}, [
+                        NumericField({dataKey: "fossilCarbonContent", height: 24, unit: "kg-C", required: "required", tabIndex:(tabIndex++), changeHandler: () => {
                             this.data.fossilEmissions = new BigNumber(this.data.fossilCarbonContent).multipliedBy(new BigNumber(44).dividedBy(new BigNumber(12))).toString();
                             this.updateCarbonFootprint();
                         }}),
@@ -436,14 +540,14 @@ class ProductFootprintRegisterView extends ViewController {
                     ])
                 ]),
                 View([
-                    InputComposite(".carbonFootprintField", {label: "Biogenic removal", labelColor: "black", style: {display: "inline-block", width: "calc(50% - 4px)", margin: [4,4,4,0], "vertical-align": "top"}}, [
+                    InputComposite(".carbonFootprintField", {label: "Biogenic emissions", labelColor: "black", style: {display: "inline-block", width: "calc(50% - 4px)", margin: [4,4,4,0], "vertical-align": "top"}}, [
                         NumericField({dataKey: "biogenicRemoval", height: 24, unit: "kg-CO<sub>2</sub>e / kg", tabIndex:(tabIndex++), changeHandler: () => {
                             this.data.biogenicCarbonContent = new BigNumber(this.data.biogenicRemoval).multipliedBy(new BigNumber(12).dividedBy(new BigNumber(44))).multipliedBy(new BigNumber(-1)).toString();
                             this.updateCarbonFootprint();
                         }}),
                     ]),
-                    InputComposite(".carbonContentField", {label: "Biogenic carbon content", labelColor: "black", style: {display: "inline-block", width: "calc(50% - 4px)", position: "relative", margin: [4,0,4,4], "vertical-align": "top"}}, [
-                        NumericField({dataKey: "biogenicCarbonContent", height: 24, unit: "kg-C / kg", required: "required", tabIndex:(tabIndex++), changeHandler: () => {
+                    InputComposite({label: "Biogenic carbon content", labelColor: "black", style: {display: "inline-block", width: "calc(50% - 4px)", position: "relative", margin: [4,0,4,4], "vertical-align": "top"}}, [
+                        NumericField({dataKey: "biogenicCarbonContent", height: 24, unit: "kg-C", required: "required", tabIndex:(tabIndex++), changeHandler: () => {
                             this.data.biogenicRemoval = new BigNumber(this.data.biogenicCarbonContent).multipliedBy(new BigNumber(44).dividedBy(new BigNumber(12))).multipliedBy(new BigNumber(-1)).toString();
                             this.updateCarbonFootprint();
                         }}),
@@ -783,7 +887,6 @@ class ProductFootprintRegisterView extends ViewController {
 
         this.dataLoadedHandler = () => {
             this.updateUnitField();
-            
             if(this.data.productId != null) {
                 this.view.querySelector(".deleteButton").style.display = "inline-block";
             }
@@ -881,10 +984,7 @@ class ProductFootprintRegisterView extends ViewController {
         amountField.style.width = "calc(100% - " + (amountUnitField.offsetWidth + 8) + "px)";
 
         this.view.querySelectorAll(".carbonFootprintField").forEach(carbonFootprintField => {
-            carbonFootprintField.querySelector("input").unit = "kg-CO<sub>2</sub>e / " + this.data.amountUnit;
-        });
-        this.view.querySelectorAll(".carbonContentField").forEach(carbonContentField => {
-            carbonContentField.querySelector("input").unit = "kg-C / " + this.data.amountUnit;
+            carbonFootprintField.unit = "kg-CO<sub>2</sub>e / " + this.data.amountUnit;
         });
     }
 

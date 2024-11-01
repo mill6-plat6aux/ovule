@@ -1,18 +1,13 @@
-# Setup
-#   1. Confirm that Company B is registered as a supplier.
-#   2. Register the stub server endpoint in the data source. The authentication information can be arbitrary.
-#   3. Register three products (A1, A2, A3). Register some kind of CPC. Add a child element to product A3 and specify Company B as the supplier.
-#   4. Register the product footprints for products A1 and A2.
 version: "2.2.0"
-authContextPath: http://localhost:8080/server/pathfinder
+authContextPath: http://localhost:3000/pathfinder
 userName: "user2@demo.a"
 password: "pJ6kZu2H"
-dataContextPath: http://localhost:8080/server/pathfinder
+dataContextPath: http://localhost:3000/pathfinder
 filterSupport: true
 limitSupport: true
 eventsSupport: true
 log: stdout
-stubContextPath: http://host.docker.internal:3100
+stubContextPath: http://localhost:3100
 keepStub: true
 stubData:
   companyIds:

@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: Harmony Client API
+  version: 0.9.0
+  summary: API to communicate with Pathfinder Harmony
+  contact:
+    name: Takuro Okada
+    email: mill6.plat6aux@gmail.com
+  description: |-
+    By implementing this API, you can receive requests from Pathfinder Harmony and receive responses from other applications.
+    You can also follow this API to send requests to Pathfinder Harmony and responses to other applications.
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /2/events:
+    post:
+      summary: Notify Event
+      operationId: post-2-events
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/cloudevents+json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/ContractRequestEvent'
+                - $ref: '#/components/schemas/ContractReplyEvent'
+      description: |-
+        Notifies you of events that occur in Pathfinder Harmony or in an application.
+        The request format is CloudEvents, which strictly follows the Action Events in the Pathfinder Tech Spec.
+components:
+  schemas:
+    ContractRequestEvent:
+      title: ContractRequestEvent
+      type: object
+      description: Used by one company to request Pathfinder endpoints and credentials from another company.
+      properties:
+        id:
+          type: string
+          description: Event identifier. Must be able to uniquely identify the event by source and id.
+        specversion:
+          type: string
+          description: CloudEvents version.
+        source:
+          type: string
+          description: The domain and endpoint of the application from which the event originates.
+          pattern: '^\/\/[-a-zA-Z0-9@:%._\+~#=]+\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]+$'
+          example: //example.com/2/events
+        time:
+          type: string
+          description: The time the event occurred.
+          format: date-time
+          example: '2024-08-01T10:50:30Z'
+        type:
+          type: string
+          enum:
+            - org.wbcsd.pathfinder.Contract.Request.v1
+        data:
+          type: object
+          required:
+            - requestor
+            - requestee
+          properties:
+            requestor:
+              type: object
+              required:
+                - companyName
+                - companyIds
+              properties:
+                companyName:
+                  type: string
+                companyIds:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    pattern: '^urn:[a-zA-Z0-9]+([-a-zA-Z0-9]*){0,30}[a-zA-Z0-9]+:[-\._~%!$&''\(\)*+,;:@=a-zA-Z0-9]*[-\._~%!$&''\(\)*+,;:@=/?a-zA-Z0-9]*$'
+                publicKey:
+                  type: string
+                  description: Provided by Harmony for encryption of data sources.
+            requestee:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The product footprint identifier (PfId).
+                  format: uuid
+                companyName:
+                  type: string
+                companyIds:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    pattern: '^urn:[a-zA-Z0-9]+([-a-zA-Z0-9]*){0,30}[a-zA-Z0-9]+:[-\._~%!$&''\(\)*+,;:@=a-zA-Z0-9]*[-\._~%!$&''\(\)*+,;:@=/?a-zA-Z0-9]*$'
+                productIds:
+                  type: array
+                  items:
+                    type: string
+                    pattern: '^urn:[a-zA-Z0-9]+([-a-zA-Z0-9]*){0,30}[a-zA-Z0-9]+:[-\._~%!$&''\(\)*+,;:@=a-zA-Z0-9]*[-\._~%!$&''\(\)*+,;:@=/?a-zA-Z0-9]*$'
+                productNameCompany:
+                  type: string
+            message:
+              type: string
+      required:
+        - id
+        - specversion
+        - source
+        - time
+        - type
+        - data
+    ContractReplyEvent:
+      title: ContractReplyEvent
+      type: object
+      description: Used to answer requests for Pathfinder endpoints and credentials.
+      properties:
+        id:
+          type: string
+          description: Event identifier. Must be able to uniquely identify the event by source and id.
+        specversion:
+          type: string
+          description: CloudEvents version.
+          example: '1.0'
+        source:
+          type: string
+          description: The domain and endpoint of the application from which the event originates.
+          pattern: '^\/\/[-a-zA-Z0-9@:%._\+~#=]+\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]+$'
+          example: //example.com/2/events
+        time:
+          type: string
+          description: The time the event occurred.
+          format: date-time
+          example: '2024-08-01T10:50:30Z'
+        type:
+          type: string
+          enum:
+            - org.wbcsd.pathfinder.Contract.Reply.v1
+        data:
+          type: object
+          required:
+            - requestEventId
+            - requestSource
+            - dataSource
+            - companyName
+            - companyIds
+          properties:
+            requestEventId:
+              type: string
+              description: The id of the ContractRequestEvent.
+            requestSource:
+              type: string
+              description: The source of the ContractRequestEvent.
+            dataSource:
+              $ref: '#/components/schemas/DataSource'
+              description: Requested Pathfinder endpoint and authentication information.
+            companyName:
+              type: string
+            companyIds:
+              type: array
+              items:
+                type: string
+                pattern: '^urn:[a-zA-Z0-9]+([-a-zA-Z0-9]*){0,30}[a-zA-Z0-9]+:[-\._~%!$&''\(\)*+,;:@=a-zA-Z0-9]*[-\._~%!$&''\(\)*+,;:@=/?a-zA-Z0-9]*$'
+            message:
+              type: string
+      required:
+        - id
+        - specversion
+        - source
+        - time
+        - type
+        - data
+    DataSource:
+      title: DataSource
+      type: object
+      properties:
+        userName:
+          type: string
+          format: byte
+          description: It is encrypted with the recipient's public key and Base64 encoded.
+          example: c2FtcGxlQGV4YW1wbGUuY29t
+        password:
+          type: string
+          format: byte
+          description: |-
+            Passwords must be at least 8 and no more than 32 characters long and contain all uppercase and lowercase letters, numbers, and symbols.
+            It is encrypted with the recipient's public key and Base64 encoded.
+          example: KFNhbSlwbDM=
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathfinderEndpoint'
+      required:
+        - userName
+        - password
+        - endpoints
+      description: Pathfinder endpoints and authentication information.
+    PathfinderEndpoint:
+      title: PathfinderEndpoint
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - Authenticate
+            - GetFootprints
+            - UpdateEvent
+        url:
+          type: string
+          format: byte
+          description: It is encrypted with the recipient's public key and Base64 encoded.
+          example: aHR0cHM6Ly9leGFtcGxlLmNvbS8yL2V2ZW50cw==
+      required:
+        - type
+        - url
+  securitySchemes:
+    BearerToken:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /auth/token
+          refreshUrl: ''
+          scopes: {}

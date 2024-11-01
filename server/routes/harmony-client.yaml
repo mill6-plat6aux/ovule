@@ -1,0 +1,4 @@
+"/2/events":
+  post:
+    module: ./server/logic/harmony/contract-manager.js
+    function: handleContractEvent

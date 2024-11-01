@@ -12,6 +12,7 @@ import { sendRequest } from "./pathfinder/event-manager.js";
 import { formatToIso8601String } from "../utility/date-utils.js";
 import { getProduct } from "./product-manager.js";
 import { v4 as uuid } from "uuid";
+import { restoreDataSource } from "./datasource-manager.js";
 
 /**
  * @type {import("arbuscular").handle}
@@ -94,12 +95,12 @@ export async function restoreSentTaskByTaskId(userId, organizationId, taskId) {
 
 /**
  * @param {number} userId 
- * @param {number} organizationId Recipient organization
+ * @param {number} organizationId Client organization
  * @param {string} eventId 
  * @returns {Promise<Array<Task>>}
  */
 export async function restoreSentTasksByEventId(userId, organizationId, eventId) {
-    return await getTasks(organizationId, null, null, eventId, true, false);
+    return await getTasks(null, organizationId, null, eventId, true, false);
 }
 
 /**
@@ -116,6 +117,7 @@ export async function restoreSentTasksByEventId(userId, organizationId, eventId)
  * @property {string|null} source
  * @property {object|null} [data]
  * @property {object|null} [productId]
+ * @property {object|null} [productFootprintId]
  * @property {Date} [updatedDate]
  */
 
@@ -147,6 +149,8 @@ async function getTasks(recipientOrganizationId, clientOrganizationId, taskId, e
     ];
     if(dataRequired) {
         columns.push("data");
+        columns.push("productId");
+        columns.push("productFootprintId");
     }
     let query = connection.column(columns).select().from("Task")
     .leftJoin("Organization as ClientOrganization", "ClientOrganization.OrganizationId", "Task.ClientOrganizationId")
@@ -204,6 +208,7 @@ export async function getTask(session, request) {
         "RecipientOrganization.OrganizationName as recipientOrganizationName",
         "taskType", 
         "message",
+        "replyMessage",
         "status",
         "data",
         "updatedDate"
@@ -244,6 +249,11 @@ export async function addRequest(session, request) {
     
     let transaction = await connection.transaction();
     try {
+        let dataSource = await restoreDataSource(clientOrganizationId, undefined, undefined, productId);
+        if(dataSource == null) {
+            throw ErrorResponse(ErrorCode.RequestError, "A data source must be configured for the target product in order to send a request.");
+        }
+        
         let organizations = await transaction.select("organizationName")
             .from("Organization")
             .where({OrganizationId: recipientOrganizationId, ParentOrganizationId: organizationId});
@@ -327,6 +337,7 @@ export async function storeTask(userId, organizationId, task) {
             Source: task.source,
             Data: task.data,
             ProductId: task.productId,
+            ProductFootprintId: task.productFootprintId,
             UpdatedDate: updatedDate
         }).into("Task");
         if(ids.length == 0) throw ErrorResponse(ErrorCode.StateError, "Invalid state.");
@@ -336,6 +347,7 @@ export async function storeTask(userId, organizationId, task) {
         await transaction.rollback();
         throw error;
     }
+    return {taskId: taskId};
 }
 
 /**
@@ -361,9 +373,9 @@ export async function updateTask(session, request) {
             throw ErrorResponse(ErrorCode.NotFoundError, "Not found.");
         }
         let storedStatus = records[0].status;
-        if(storedStatus == "Completed") {
-            throw ErrorResponse(ErrorCode.RequestError, "Cannot change status because it has already been completed.");
-        }
+        // if(storedStatus == "Completed") {
+        //     throw ErrorResponse(ErrorCode.RequestError, "Cannot change status because it has already been completed.");
+        // }
         await transaction("Task").update({
             Status: status,
             ReplyMessage: replyMessage,

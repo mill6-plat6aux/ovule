@@ -6,8 +6,9 @@
 // @ts-check
 
 import { connection } from "../utility/database.js";
-import { ErrorResponse, ErrorCode } from "arbuscular";
+import { ErrorResponse, ErrorCode, writeError } from "arbuscular";
 import { hasOrganizationPrivilege } from "./authorization.js";
+import { syncOrganizationToHarmony } from "./harmony/organization-manager.js";
 
 /**
  * @type {import("arbuscular").handle}
@@ -202,6 +203,14 @@ export async function updateOrganization(session, request) {
     }catch(error) {
         await transaction.rollback();
         throw error;
+    }
+
+    if(organizationId == childOrganizationId) {
+        try {
+            await syncOrganizationToHarmony(userId, organizationId);
+        }catch(error) {
+            writeError(error.message);
+        }
     }
 }
 

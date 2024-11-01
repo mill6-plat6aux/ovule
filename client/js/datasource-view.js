@@ -37,14 +37,21 @@ class DataSourceView extends ViewController {
                 View({style: {
                     margin: [0,0,16,0],
                     "font-size": "small"
-                }}, ["If your business partners are using applications that implement Pathfinder, you can register their credentials and endpoints to notify them to register their own product footprints or request them to register the product footprints of other companies' products."]),
+                }}, [
+                    HtmlTag("p", {style: {padding: [4,0]}}, [
+                        "If your business partners are using applications that implement Pathfinder, you can register their credentials and endpoints to notify them to register their own product footprints or request them to register the product footprints of other companies' products."
+                    ]),
+                    HtmlTag("p", {style: {padding: [4,0]}}, [
+                        "If you have registered the Pathfinder Harmony data source, you can query it for data sources from other companies."
+                    ])
+                ]),
                 View({height: 40}, [
                     Button(".addButton", {style: {
                         "background-image": "images/add.svg",
                         "background-position": [0, "center"],
                         "background-size": 16,
                         "background-repeat": "no-repeat",
-                        padding: [8,8,8,20],
+                        padding: [8,8,8,20]
                     }, tapHandler: () => {
                         let record = {
                             dataSourceId: null,
@@ -52,7 +59,27 @@ class DataSourceView extends ViewController {
                             endpoints: []
                         };
                         this.showDetailView(record);
-                    }}, ["Add"])
+                    }}, ["Add"]),
+                    Button(".requestButton", {style: {
+                        "background-image": "images/mail.svg",
+                        "background-position": [0, "center"],
+                        "background-size": 16,
+                        "background-repeat": "no-repeat",
+                        padding: [8,8,8,20],
+                        margin: [0,0,0,16]
+                    }, tapHandler: () => {
+                        let editor = new DataSourceRequestView();
+                        editor.data = {
+                            organizationName: null,
+                            identifiers: [],
+                            message: null
+                        };
+                        editor.applyHandler = record => {
+                            HttpConnection.request(ContextPath+"/lablab"+"/contract/request", "POST", record).then(response => {
+                                Controls.Message("You have requested other company's data source from Pathfinder Harmony.\nYou can check the status of your request in Task.\nWhen other company responds, the data source will be automatically added here.", "info", function() {});
+                            });
+                        };
+                    }}, ["Request"])
                 ]),
                 Table(".list", {
                     dataKey: ".",
@@ -123,7 +150,7 @@ class DataSourceView extends ViewController {
     }
 
     loadDataSources() {
-        HttpConnection.request(ContextPath+"/datasources", "GET").then(products => {
+        HttpConnection.request(ContextPath+"/lablab"+"/datasources", "GET").then(products => {
             this.data = products;
             this.reloadView();
         });
@@ -152,6 +179,10 @@ class DataSourceView extends ViewController {
         if(endpoint != null) {
             data.eventsUrl = endpoint.url;
         }
+        endpoint = record.endpoints.find(endpoint => endpoint.type == "UpdateDataSource");
+        if(endpoint != null) {
+            data.updateDataSourceUrl = endpoint.url;
+        }
 
         registerView.data = data;
         if(record.dataSourceId == null) {
@@ -177,7 +208,14 @@ class DataSourceView extends ViewController {
                     });
                     delete record.eventsUrl;
                 }
-                HttpConnection.request(ContextPath+"/datasources", "POST", record).then(response => {
+                if(record.updateDataSourceUrl != null) {
+                    record.endpoints.push({
+                        type: "UpdateDataSource",
+                        url: record.updateDataSourceUrl
+                    });
+                    delete record.updateDataSourceUrl;
+                }
+                HttpConnection.request(ContextPath+"/lablab"+"/datasources", "POST", record).then(response => {
                     this.loadDataSources();
                     this.dismissDetailView();
                 });
@@ -211,13 +249,22 @@ class DataSourceView extends ViewController {
                     entpoint.url = record.eventsUrl;
                     delete record.eventsUrl;
                 }
-                HttpConnection.request(ContextPath+"/datasources/"+record.dataSourceId, "PUT", record).then(response => {
+                if(record.updateDataSourceUrl != null) {
+                    let entpoint = record.endpoints.find(endpoint => endpoint.type == "UpdateDataSource");
+                    if(entpoint == null) {
+                        entpoint = {type: "UpdateDataSource"};
+                        record.endpoints.push(entpoint);
+                    }
+                    entpoint.url = record.updateDataSourceUrl;
+                    delete record.updateDataSourceUrl;
+                }
+                HttpConnection.request(ContextPath+"/lablab"+"/datasources/"+record.dataSourceId, "PUT", record).then(response => {
                     this.loadDataSources();
                     this.dismissDetailView();
                 });
             };
             registerView.deleteHandler = record => {
-                HttpConnection.request(ContextPath+"/datasources/"+record.dataSourceId, "DELETE", record).then(response => {
+                HttpConnection.request(ContextPath+"/lablab"+"/datasources/"+record.dataSourceId, "DELETE", record).then(response => {
                     this.loadDataSources();
                     this.dismissDetailView();
                 });
@@ -265,7 +312,8 @@ class DataSourceRegisterView extends ViewController {
         this.parent = "body > .main > .contents .dataSourceDetail";
 
         let dataSourceTypes = [
-            {label: "Pathfinder", value: "Pathfinder"}
+            {label: "Pathfinder", value: "Pathfinder"},
+            {label: "Harmony", value: "Harmony"},
         ];
 
         this.view = View([
@@ -298,16 +346,21 @@ class DataSourceRegisterView extends ViewController {
                             "line-height": "normal"
                         };
                     },
-                    tabIndex:2
+                    selectHandler: selectedIndex => {
+                        this.data.dataSourceType = dataSourceTypes[selectedIndex].value;
+                        this.reloadData();
+                        this.endpointView.reloadView();
+                    },
+                    tabIndex:3
                 }),
                 RequiredLabel()
             ]),
             InputComposite({label: "User Name", labelColor: "black", style: {position: "relative"}}, [
-                TextField({dataKey: "userName", height: 24, autocomplete: "off", tabIndex:3}),
+                TextField({dataKey: "userName", height: 24, autocomplete: "off", tabIndex:2}),
                 RequiredLabel()
             ]),
             InputComposite({label: "Password", labelColor: "black", style: {position: "relative"}}, [
-                PasswordField({dataKey: "password", height: 24, autocomplete: "new-password", tabIndex:4}),
+                PasswordField({dataKey: "password", height: 24, autocomplete: "new-password", tabIndex:3}),
                 RequiredLabel()
             ]),
             View(".endpoints", {style: {margin: [32,0,16,0]}}),
@@ -322,14 +375,14 @@ class DataSourceRegisterView extends ViewController {
                 }, tabIndex:6}),
                 Button({label: "Close", style: {margin: [0,8], color: Colors.CancelButton}, tapHandler: button => {
                     this.dismissHandler();
-                }, tabIndex:7})
+                }, tabIndex:6})
             ])
         ]);
 
-        let endpointView = new EndpointRegisterView();
+        this.endpointView = new EndpointRegisterView();
 
         this.dataLoadedHandler = () => {
-            endpointView.data = this.data;
+            this.endpointView.data = this.data;
 
             if(this.data.dataSourceId != null) {
                 this.view.querySelector(".deleteButton").style.display = "inline-block";
@@ -357,17 +410,217 @@ class EndpointRegisterView extends ViewController {
                 "font-size": "1.5em",
                 "font-weight": 900
             }}, ["Endpoints"]),
-            InputComposite({label: "Action Authenticate URL", labelColor: "black", style: {position: "relative"}}, [
+            InputComposite(".dataSourceAuthenticateUrlField", {label: "Action Authenticate URL", labelColor: "black", style: {position: "relative"}}, [
                 TextField({dataKey: "authenticateUrl", height: 24, required: "required", placeholder: "https://exsample.com/auth/token", tabIndex:4}),
                 RequiredLabel()
             ]),
-            InputComposite({label: "Action List Footprints URL", labelColor: "black", style: {position: "relative"}}, [
-                TextField({dataKey: "footprintsUrl", height: 24, required: "required", placeholder: "https://exsample.com/2/footprints", tabIndex:5}),
+            InputComposite(".dataSourceFootprintsUrlField", {label: "Action List Footprints URL", labelColor: "black", style: {position: "relative"}}, [
+                TextField({dataKey: "footprintsUrl", height: 24, placeholder: "https://exsample.com/2/footprints", tabIndex:5}),
                 RequiredLabel()
             ]),
-            InputComposite({label: "Action Events URL", labelColor: "black", style: {position: "relative"}}, [
-                TextField({dataKey: "eventsUrl", height: 24, placeholder: "https://exsample.com/2/events", tabIndex:6})
+            InputComposite(".dataSourceEventsUrlField", {label: "Action Events URL", labelColor: "black", style: {position: "relative"}}, [
+                TextField({dataKey: "eventsUrl", height: 24, placeholder: "https://exsample.com/2/events", tabIndex:6}),
+                RequiredLabel()
+            ]),
+            InputComposite(".dataSourceUpdateUrlField", {label: "Harmony Update DataSource URL", labelColor: "black", style: {position: "relative", display: "none"}}, [
+                TextField({dataKey: "updateDataSourceUrl", height: 24, placeholder: "https://exsample.com/datasources", tabIndex:7}),
+                RequiredLabel()
             ])
         ]);
+
+        this.dataLoadedHandler = () => {
+            this.reloadView();
+        };
+    }
+
+    reloadView() {
+        if(this.data.dataSourceType == "Harmony") {
+            this.view.querySelector(".dataSourceFootprintsUrlField").style.display = "none";
+            this.view.querySelector(".dataSourceFootprintsUrlField > .requiredLabel").style.display = "none";
+            this.view.querySelector(".dataSourceEventsUrlField > .requiredLabel").style.display = "inline-block";
+            this.view.querySelector(".dataSourceUpdateUrlField").style.display = "block";
+        }else {
+            this.view.querySelector(".dataSourceFootprintsUrlField").style.display = "block";
+            this.view.querySelector(".dataSourceFootprintsUrlField > .requiredLabel").style.display = "inline-block";
+            this.view.querySelector(".dataSourceEventsUrlField > .requiredLabel").style.display = "none";
+            this.view.querySelector(".dataSourceUpdateUrlField").style.display = "none";
+        }
+    }
+}
+
+class DataSourceRequestView extends PopoverViewController {
+
+    constructor() {
+        super();
+        this.parent = "body";
+        this.container.style.backgroundColor = "white";
+        this.container.style.padding = "24px";
+        this.container.style.borderRadius = "8px";
+        
+        this.view = View({width: 420}, [
+            View({style: {
+                margin: [0,0,16,0],
+                "font-size": "1.5em",
+                "font-weight": 900
+            }}, ["Data Source Request"]),
+            InputComposite(".organizationNameField", {label: "Recipient company name", labelColor: "black", style: {margin: [16,0], position: "relative"}}, [
+                TextField({dataKey: "organizationName", height: 24, tabIndex:1})
+            ]),
+            InputComposite(".identifiersField", {label: "Recipient company identifier", labelColor: "black", style: {margin: [16,0], position: "relative"}}, [
+                View(".identifiers", [
+                    View(".addButton", {style:{
+                        display: "inline-block",
+                        "vertical-align": "middle",
+                        width: 24,
+                        height: 24,
+                        "background-image": "images/add.svg",
+                        "background-repeat": "no-repeat",
+                        "background-size": 20,
+                        "background-position": "center",
+                        cursor: "pointer"
+                    }, tapHandler: () => {
+                        let registerView = new IdentifierRegisterView("Organization Identifier", "Company");
+                        registerView.data = {type: "UUID"};
+                        registerView.applyHandler = data => {
+                            this.data.identifiers.push({type: data.type, code: data.code});
+                            this.loadOrganizationIdentifiers(this.data.identifiers);
+                        };
+                    }, tabIndex:2})
+                ])
+            ]),
+            InputComposite({label: "Message", labelColor: "black", style: {margin: [16,0], position: "relative"}}, [
+                TextArea({dataKey: "message", height: 64, tabIndex:3})
+            ]),
+            View({align: "center", style: {margin: [16,0,0,0]}}, [
+                Button({label: "Send", style: {"font-weight":"600", margin: [0,8], color: Colors.ApplyButton}, tapHandler: button => {
+                    this.register(button);
+                }, tabIndex:4}),
+                Button({label: "Cancel", style: {margin: [0,8], color: Colors.CancelButton}, tapHandler: button => {
+                    this.dismiss();
+                }, tabIndex:5})
+            ])
+        ]);
+
+        this.dataLoadedHandler = () => {
+            if(this.data.organizationName === undefined) {
+                this.view.querySelector(".organizationNameField").style.display = "none";
+            }
+            if(this.data.identifiers === undefined) {
+                this.view.querySelector(".identifiersField").style.display = "none";
+            }
+        };
+    }
+
+    loadOrganizationIdentifiers(identifiers) {
+        this.view.querySelectorAll(".identifier").forEach(element => {
+            element.remove();
+        });
+        identifiers.forEach(identifier => {
+            this.addOrganizationIdentifier(identifier);
+        });
+    }
+
+    addOrganizationIdentifier(identifier) {
+        let self = this;
+        let addButton = this.view.querySelector(".identifiers > .addButton");
+        addButton.before(View(".identifier", {style: {
+            display: "inline-block",
+            "vertical-align": "middle",
+            "border-radius": 4,
+            border: "1px solid gray",
+            "white-space": "nowrap",
+            padding: 4,
+            margin: 4
+        }}, [
+            View({style:{
+                display: "inline-block",
+                "vertical-align": "middle",
+                "user-select": "text",
+                padding: [0,4]
+            }}, [identifier.code]),
+            View({style:{
+                display: "inline-block",
+                "vertical-align": "middle",
+                width: 24,
+                height: 24,
+                "background-image": "images/remove.svg",
+                "background-repeat": "no-repeat",
+                "background-size": 16,
+                "background-position": "center",
+                cursor: "pointer"
+            }, tapHandler: () => {
+                Controls.Message("Are you sure you want to delete?", "warning", () => {
+                    let index = this.data.identifiers.find(_identifier => _identifier.code == identifier.code && _identifier.type == identifier.type);
+                    this.data.identifiers.splice(index, 1);
+                    this.loadOrganizationIdentifiers(this.data.identifiers);
+                }, function() {})
+            }})
+        ]));
+    }
+
+    register(button) {
+        if(!this.view.validate()) {
+            button.restore();
+            return;
+        }
+        if(this.data.organizationName !== undefined && this.data.identifiers !== undefined) {
+            if(this.data.organizationName == null && this.data.identifiers.length == 0) {
+                Controls.Message("Specify either the company name or company identifier you are requesting.");
+                return;
+            }
+        }
+        this.applyHandler(this.data);
+        this.dismiss();
+    }
+}
+
+class DataSourceReplyView extends PopoverViewController {
+
+    constructor() {
+        super();
+        this.parent = "body";
+        this.container.style.backgroundColor = "white";
+        this.container.style.padding = "24px";
+        this.container.style.borderRadius = "8px";
+        
+        this.view = View({width: 420}, [
+            View({style: {
+                margin: [0,0,16,0],
+                "font-size": "1.5em",
+                "font-weight": 900
+            }}, ["Data Source Reply"]),
+            View({style: {
+                margin: [0,0,16,0],
+                "font-size": "small"
+            }}, ["Set up an account to be provided to the requesting company."]),
+            InputComposite({label: "User Name", labelColor: "black", style: {position: "relative"}}, [
+                TextField({dataKey: "userName", height: 24, autocomplete: "off", required: "required", tabIndex:1}),
+                RequiredLabel()
+            ]),
+            InputComposite({label: "Password", labelColor: "black", style: {position: "relative"}}, [
+                PasswordField({dataKey: "password", height: 24, autocomplete: "new-password", required: "required", tabIndex:2}),
+                RequiredLabel()
+            ]),
+            InputComposite({label: "Message", labelColor: "black", style: {margin: [8,0], position: "relative"}}, [
+                TextArea({dataKey: "message", height: 64, tabIndex:3})
+            ]),
+            View({align: "center", style: {margin: [16,0,0,0]}}, [
+                Button({label: "Send", style: {"font-weight":"600", margin: [0,8], color: Colors.ApplyButton}, tapHandler: button => {
+                    this.register(button);
+                }, tabIndex:4}),
+                Button({label: "Cancel", style: {margin: [0,8], color: Colors.CancelButton}, tapHandler: button => {
+                    this.dismiss();
+                }, tabIndex:5})
+            ])
+        ]);
+    }
+
+    register(button) {
+        if(!this.view.validate()) {
+            button.restore();
+            return;
+        }
+        this.applyHandler(this.data);
+        this.dismiss();
     }
 }

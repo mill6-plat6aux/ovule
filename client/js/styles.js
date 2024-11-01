@@ -4,6 +4,6 @@
  */
 
 const Colors = {
-    ApplyButton: "#467302",
+    ApplyButton: "rgb(112,27,91)",
     CancelButton: "#8C8C8C"
 };

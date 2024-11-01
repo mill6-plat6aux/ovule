@@ -9,6 +9,7 @@ import { connection } from "../utility/database.js";
 import { ErrorResponse, ErrorCode } from "arbuscular";
 import { createHash } from "crypto";
 import { hasUserPrivilege } from "./authorization.js";
+import { sendDataSourceToHarmony } from "./harmony/datasource-manager.js";
 
 /**
  * @type {import("arbuscular").handle}
@@ -90,6 +91,10 @@ export async function addUser(session, request) {
     let privileges = request.privileges;
     let _organizationId = request.organizationId;
 
+    if(userType == "Harmony" && _organizationId != null && _organizationId != organizationId) {
+        throw ErrorResponse(ErrorCode.RequestError, "For the Harmony user type, you must specify own organization.");
+    }
+
     if(_organizationId == null) {
         _organizationId = organizationId;
     }
@@ -114,6 +119,11 @@ export async function addUser(session, request) {
         await transaction.rollback();
         throw error;
     }
+
+    // LABLAB: If the user is for access from Harmony, synchronize data to Harmony.
+    if(userType == "Harmony") {
+        await sendDataSourceToHarmony(userId, organizationId, userName, password);
+    }
 }
 
 /**
@@ -131,7 +141,11 @@ export async function updateUser(session, request) {
     let password = request.password;
     let privileges = request.privileges;
     let _organizationId = request.organizationId;
-    
+
+    if(userType == "Harmony" && _organizationId != null && _organizationId != organizationId) {
+        throw ErrorResponse(ErrorCode.RequestError, "For the Harmony user type, you must specify own organization.");
+    }
+
     if(_organizationId == null) {
         _organizationId = organizationId;
     }
@@ -166,9 +180,9 @@ export async function updateUser(session, request) {
         }
 
         if(hashedPassword != null) {
-            await transaction("User").update({UserName: userName, Password: hashedPassword}).where({OrganizationId: _organizationId, UserId: _userId});
+            await transaction("User").update({UserName: userName, Password: hashedPassword, OrganizationId: _organizationId}).where({UserId: _userId});
         }else {
-            await transaction("User").update({UserName: userName}).where({OrganizationId: _organizationId, UserId: _userId});
+            await transaction("User").update({UserName: userName, OrganizationId: _organizationId}).where({UserId: _userId});
         }
         await transaction("UserPrivilege").delete().where({UserId: _userId});
         if(privileges != null && privileges.length > 0) {
@@ -180,6 +194,11 @@ export async function updateUser(session, request) {
     }catch(error) {
         await transaction.rollback();
         throw error;
+    }
+
+    // LABLAB: If the user is for access from Harmony, synchronize data to Harmony.
+    if(userType == "Harmony" && password != null) {
+        await sendDataSourceToHarmony(userId, organizationId, userName, password);
     }
 }
 
@@ -207,7 +226,7 @@ export async function deleteUser(session, request) {
             throw ErrorResponse(ErrorCode.NotFoundError, "Not found.");
         }
 
-        await transaction("User").delete().where({UserId: _userId, OrganizationId: organizationId});
+        await transaction("User").delete().where({UserId: _userId});
         await transaction.commit();
     }catch(error) {
         await transaction.rollback();

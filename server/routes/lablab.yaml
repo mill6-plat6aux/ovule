@@ -1,0 +1,62 @@
+/contract/request:
+  post:
+    module: ./server/logic/harmony/contract-manager.js
+    function: requestContract
+/contract/reply:
+  post:
+    module: ./server/logic/harmony/contract-manager.js
+    function: replyContract
+/users:
+  get:
+    module: ./server/logic/user-manager.js
+    function: getUsers
+  post:
+    module: ./server/logic/user-manager.js
+    function: addUser
+/users/{userId}:
+  put:
+    module: ./server/logic/user-manager.js
+    function: updateUser
+  delete:
+    module: ./server/logic/user-manager.js
+    function: deleteUser
+/datasources:
+  get:
+    module: ./server/logic/datasource-manager.js
+    function: getDataSources
+  post:
+    module: ./server/logic/datasource-manager.js
+    function: addDataSource
+/datasources/{dataSourceId}:
+  put:
+    module: ./server/logic/datasource-manager.js
+    function: updateDataSource
+  delete:
+    module: ./server/logic/datasource-manager.js
+    function: deleteDataSource
+/tasks/received:
+  get:
+    module: ./server/logic/task-manager.js
+    function: getReceivedTasks
+/tasks/sent:
+  get:
+    module: ./server/logic/task-manager.js
+    function: getSentTasks
+/tasks/{taskId}:
+  get:
+    module: ./server/logic/task-manager.js
+    function: getTask
+  put:
+    module: ./server/logic/task-manager.js
+    function: updateTask
+  delete:
+    module: ./server/logic/task-manager.js
+    function: deleteTask
+/product-footprints:
+  get:
+    module: ./server/logic/harmony/product-footprint-manager.js
+    function: getProductFootprints
+/product-footprint-references/{productFootprintId}:
+  put:
+    module: ./server/logic/harmony/product-footprint-manager.js
+    function: updateProductFootprintReference

@@ -1,0 +1,609 @@
+openapi: 3.1.0
+info:
+  title: LABLAB API
+  version: 0.9.0
+  contact:
+    name: Takuro Okada
+    email: mill6.plat6aux@gmail.com
+  summary: The extensions to the Ovule API.
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /contract/request:
+    post:
+      summary: Request Contract
+      operationId: post-contract-request
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organizationName:
+                  type:
+                    - string
+                    - 'null'
+                identifiers:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: '#/components/schemas/OrganizationIdentifier'
+                productFooptrintId:
+                  type: number
+                message:
+                  type:
+                    - string
+                    - 'null'
+              required:
+                - message
+  /contract/reply:
+    parameters: []
+    post:
+      summary: Reply Contract
+      operationId: post-contract-reply
+      responses:
+        '200':
+          description: OK
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                taskId:
+                  type: number
+                userName:
+                  type: string
+                password:
+                  type: string
+                message:
+                  type:
+                    - string
+                    - 'null'
+              required:
+                - taskId
+                - userName
+                - password
+                - message
+  /users:
+    get:
+      summary: Get Users
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+      operationId: get-users
+      security:
+        - BearerToken: []
+    post:
+      summary: Add User
+      operationId: post-users
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+  '/users/{userId}':
+    parameters:
+      - schema:
+          type: number
+        name: userId
+        in: path
+        required: true
+    put:
+      summary: Update User
+      operationId: put-users-userId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+    delete:
+      summary: Delete User
+      operationId: delete-users-userId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /datasources:
+    get:
+      summary: Get Data Sources
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataSource'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      operationId: get-datasources
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: productId
+        - schema:
+            type: string
+          in: query
+          name: dataSourceName
+    post:
+      summary: Add Data Source
+      operationId: post-datasources
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSource'
+  /tasks/received:
+    get:
+      summary: Get Received Tasks
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '403':
+          description: Forbidden
+      operationId: get-tasks
+      security:
+        - BearerToken: []
+    parameters: []
+  /tasks/sent:
+    get:
+      summary: Get Sent Tasks
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '403':
+          description: Forbidden
+      operationId: get-tasks-sent
+      security:
+        - BearerToken: []
+  '/tasks/{taskId}':
+    parameters:
+      - schema:
+          type: number
+        name: taskId
+        in: path
+        required: true
+    get:
+      summary: Get Task
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      operationId: get-tasks-taskId
+      security:
+        - BearerToken: []
+    put:
+      summary: Update Task
+      operationId: put-tasks-taskId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+    delete:
+      summary: Delete Task
+      operationId: delete-tasks-taskId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  '/datasources/{dataSourceId}':
+    parameters:
+      - schema:
+          type: number
+        name: dataSourceId
+        in: path
+        required: true
+    put:
+      summary: Update Data Source
+      operationId: put-datasources-dataSourceId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      description: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSource'
+    delete:
+      summary: Delete Data Source
+      operationId: delete-datasources-dataSourceId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /product-footprints:
+    get:
+      summary: Get Product Footprints
+      operationId: get-product-footprints
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    productFootprintId:
+                      type:
+                        - number
+                        - 'null'
+                    dataId:
+                      type:
+                        - string
+                        - 'null'
+                      format: uuid
+                    version:
+                      type:
+                        - number
+                        - 'null'
+                    updatedDate:
+                      type:
+                        - string
+                        - 'null'
+                      format: date-time
+                    status:
+                      type:
+                        - string
+                        - 'null'
+                      enum:
+                        - Active
+                        - Deprecated
+                    organizationId:
+                      type:
+                        - number
+                        - 'null'
+                    productId:
+                      type:
+                        - number
+                        - 'null'
+                    carbonFootprint:
+                      type:
+                        - string
+                        - 'null'
+                      pattern: '^[0-9]+(\.[0-9]+)?$'
+                    amountUnit:
+                      type:
+                        - string
+                        - 'null'
+                      enum:
+                        - kg
+                        - l
+                        - m3
+                        - m2
+                        - kWh
+                        - MJ
+                        - t-km
+                  required:
+                    - productFootprintId
+                    - dataId
+                    - version
+                    - updatedDate
+                    - status
+                    - organizationId
+                    - productId
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: productId
+        - schema:
+            type: number
+          in: query
+          name: parentProductFootprintId
+    parameters: []
+  '/product-footprint-references/{productFootprintId}':
+    put:
+      summary: Update Product Footprint Reference
+      operationId: put-product-footprint-references
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parentProductFootprintId:
+                  type: number
+    parameters:
+      - schema:
+          type: number
+        name: productFootprintId
+        in: path
+        required: true
+components:
+  schemas:
+    User:
+      title: User
+      type: object
+      properties:
+        userId:
+          type:
+            - number
+            - 'null'
+        userType:
+          type: string
+          enum:
+            - General
+            - Pathfinder
+            - Harmony
+        userName:
+          type: string
+        password:
+          type: string
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*\(\)\-_+\[\]{}|:;,.\/?])[a-zA-Z0-9!@#$%^&*\(\)\-_+\[\]{}|:;,.\/?]{8,32}$'
+        privileges:
+          type: array
+          items:
+            type: object
+            properties:
+              data:
+                type: string
+                enum:
+                  - Organization
+                  - Users
+                  - Products
+                  - EmissionFactor
+                  - ProductActivity
+                  - ProductFootprint
+                  - DataSource
+                  - Task
+              permission:
+                type: string
+                enum:
+                  - Read
+                  - Write
+            required:
+              - data
+              - permission
+        organizationId:
+          type: number
+      required:
+        - userId
+        - userType
+        - privileges
+    OrganizationIdentifier:
+      title: OrganizationIdentifier
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - UUID
+            - LEI
+            - SGLN
+            - SupplierSpecific
+            - BuyerSpecific
+        code:
+          type: string
+      required:
+        - type
+        - code
+    DataSource:
+      title: DataSource
+      type: object
+      properties:
+        dataSourceId:
+          type:
+            - number
+            - 'null'
+        dataSourceName:
+          type: string
+        dataSourceType:
+          type: string
+          enum:
+            - Pathfinder
+            - Harmony
+        userName:
+          type: string
+        password:
+          type: string
+        endpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum:
+                  - Authenticate
+                  - GetFootprints
+                  - UpdateEvent
+                  - UpdateDataSource
+                  - UpdatePublicKey
+              url:
+                type: string
+                pattern: '^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$'
+            required:
+              - type
+              - url
+      required:
+        - dataSourceId
+        - dataSourceName
+        - dataSourceType
+        - endpoints
+    Task:
+      title: Task
+      type: object
+      properties:
+        taskId:
+          type:
+            - number
+            - 'null'
+        clientOrganizationId:
+          type:
+            - number
+            - 'null'
+        clientOrganizationName:
+          type: string
+        recipientOrganizationId:
+          type: number
+        recipientOrganizationName:
+          type: string
+        taskType:
+          type: string
+          enum:
+            - ProductFootprintNotification
+            - ProductFootprintRequest
+            - ContractRequest
+        message:
+          type: string
+        status:
+          type: string
+          enum:
+            - Unread
+            - Pending
+            - Rejected
+            - Completed
+        data:
+          type: object
+          description: 'Content of notices, requests, etc.'
+        updatedDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+      required:
+        - taskId
+        - clientOrganizationId
+        - recipientOrganizationId
+        - taskType
+        - message
+        - status
+        - updatedDate
+  securitySchemes:
+    BearerToken:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /auth/token
+          refreshUrl: ''
+          scopes: {}

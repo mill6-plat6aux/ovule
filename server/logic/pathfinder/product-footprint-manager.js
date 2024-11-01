@@ -9,6 +9,7 @@ import { connection } from "../../utility/database.js";
 import { ErrorResponse, ErrorCode, writeError } from "arbuscular";
 import { formatToIso8601String } from "../../utility/date-utils.js";
 import { hasProductFootprintPrivilege } from "../authorization.js";
+import { convertChildProductFootprint, fillChildProductFootprints } from "../harmony/product-footprint-manager.js";
 
 /**
  * @type {import("arbuscular").handle}
@@ -59,7 +60,6 @@ export async function getProductFootprints(session, request) {
 }
 
 /**
- * 
  * @param {number} userId 
  * @param {number} organizationId 
  * @param {number | null} parentOrganizationId 
@@ -90,9 +90,14 @@ export async function restoreProductFootprints(userId, organizationId, parentOrg
         }
     }
 
-    let results = await query;
-    
-    return results;
+    let productFootprints = await query;
+
+    // LABLAB: If a product part is registered and the product footprint of the part is registered, it is added to the breakdown.
+    await Promise.all(productFootprints.map(async productFootprint => {
+        await fillChildProductFootprints(productFootprint);
+    }));
+
+    return productFootprints;
 }
 
 /**
@@ -115,7 +120,6 @@ export async function restoreProductFootprint(userId, organizationId, parentOrga
     }else if(productFootprintId != null) {
         query.andWhere({ProductFootprintId: productFootprintId});
     }
-    
     let productFootprints = await query;
     if(productFootprints.length == 0) {
         throw ErrorResponse(ErrorCode.NotFoundError, JSON.stringify({code: "NoSuchFootprint", message: "The requested product footprint was not in this system."}));
@@ -125,6 +129,10 @@ export async function restoreProductFootprint(userId, organizationId, parentOrga
         writeError(`Product footprints were successfully obtained but there were no Active`);
         throw ErrorResponse(ErrorCode.StateError, JSON.stringify({code: "InternalError", message: "A problem occurred while obtaining the product footprint. Please contact your administrator."}));
     }
+
+    // LABLAB: If a product part is registered and the product footprint of the part is registered, it is added to the breakdown.
+    await fillChildProductFootprints(productFootprint);
+
     return productFootprint;
 }
 
@@ -310,6 +318,8 @@ export async function convertProductFootprint(productFootprint) {
         result.pcf.assurance = assurances[0];
     }
 
+    convertChildProductFootprint(productFootprint, result);
+
     return result;
 }
 
@@ -416,7 +426,7 @@ function convertAmountUnit(amountUnit) {
  * @param {string} source 
  * @returns {Array<Operation | JoinedOperation> | null}
  */
-function parseFilter(source) {
+export function parseFilter(source) {
     source = source.trim();
     
     // 0: operand1, 1: operator, 2: operand2

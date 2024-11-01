@@ -5,6 +5,7 @@
 
 export interface ProductFootprint {
     productFootprintId: number|null,
+
     // id 
     dataId: string,
     version: number,
@@ -19,6 +20,7 @@ export interface ProductFootprint {
     organizationId: number,
     productId: number,
     comment: string,
+
     // pcf.declaredUnit 
     amountUnit: "kg" | "l" | "m3" | "m2" | "kWh" | "MJ" | "t-km",
     // pcf.unitaryProductAmount  
@@ -82,7 +84,9 @@ export interface ProductFootprint {
     // pcf.dqi 
     dataQualityIndicator: DataQualityIndicator|null,
     // pcf.assurance 
-    assurance: Assurance|null
+    assurance: Assurance|null,
+
+    breakdown: Array<ChildProductFootprint>
 }
 
 export interface CarbonAccountingRule {
@@ -114,4 +118,25 @@ export interface Assurance {
     updatedDate: string|null,
     standard: string|null,
     comments: string|null
+}
+
+export interface ChildProductFootprint {
+    productFootprintId: number,
+
+    dataId?: string,
+    updatedDate?: string,
+    availableStartDate?: string|null,
+    availableEndDate?: string|null,
+
+    carbonFootprint?: string,
+    carbonFootprintIncludingBiogenic?: string|null,
+
+    measurementStartDate?: string,
+    measurementEndDate?: string,
+
+    primaryDataShare?: number|null,
+    dataQualityIndicator?: DataQualityIndicator|null,
+    assurance?: Assurance|null,
+
+    breakdown?: Array<ChildProductFootprint>
 }
