@@ -1,0 +1,23 @@
+port: 3000
+interfaces:
+  - contextPath: ""
+    interface: "./server/interface/ovule.yaml"
+    route: "./server/routes/ovule.yaml"
+    authentication:
+      module: "./server/logic/authentication.js"
+      function: "authenticate"
+    authorization:
+      module: "./server/logic/authentication.js"
+      function: "authorize"
+  - contextPath: "/pathfinder"
+    interface: "./server/interface/pathfinder-2.2.0.yaml"
+    route: "./server/routes/pathfinder.yaml"
+    authentication:
+      module: "./server/logic/pathfinder/authentication.js"
+      function: "authenticate"
+    authorization:
+      module: "./server/logic/pathfinder/authentication.js"
+      function: "authorize"
+    customErrorHeaders:
+      "Content-Type": "application/json"
+healthCheckPath: "/"

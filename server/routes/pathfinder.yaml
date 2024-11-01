@@ -1,0 +1,12 @@
+"/2/footprints":
+  get:
+    module: ./server/logic/pathfinder/product-footprint-manager.js
+    function: getProductFootprints
+"/2/footprints/{id}":
+  get:
+    module: ./server/logic/pathfinder/product-footprint-manager.js
+    function: getProductFootprints
+"/2/events":
+  post:
+    module: ./server/logic/pathfinder/event-manager.js
+    function: handleEvent

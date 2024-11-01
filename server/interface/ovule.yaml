@@ -1,0 +1,1748 @@
+openapi: 3.1.0
+info:
+  title: Ovule API
+  version: 0.9.0
+  summary: Product Footprints Management System API
+  contact:
+    name: Takuro Okada
+    email: mill6.plat6aux@gmail.com
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /users:
+    get:
+      summary: Get Users
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden
+      operationId: get-users
+      security:
+        - BearerToken: []
+      requestBody:
+        content: {}
+    post:
+      summary: Add User
+      operationId: post-users
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+  '/users/{userId}':
+    parameters:
+      - schema:
+          type: number
+        name: userId
+        in: path
+        required: true
+    put:
+      summary: Update User
+      operationId: put-users-userId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+    delete:
+      summary: Delete User
+      operationId: delete-users-userId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content: {}
+  /organization:
+    get:
+      summary: Get Own Organization
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '403':
+          description: Forbidden
+      operationId: get-organization
+      security:
+        - BearerToken: []
+  /organizations:
+    get:
+      summary: Get Child Organizations
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+        '403':
+          description: Forbidden
+      operationId: get-organizations
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: organizationName
+        - schema:
+            type: number
+          in: query
+          name: parentOrganizationId
+    post:
+      summary: Add Child Organization
+      operationId: post-organizations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organizationId:
+                    type: number
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Organization'
+  '/organizations/{organizationId}':
+    parameters:
+      - schema:
+          type: number
+        name: organizationId
+        in: path
+        required: true
+    put:
+      summary: Update Organization
+      operationId: put-organizations-organizationId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Organization'
+    delete:
+      summary: Delete Organization
+      operationId: delete-organizations-organizationId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+    get:
+      summary: Get Child Organization
+      operationId: get-organizations-organizationId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /products:
+    get:
+      summary: Get Products
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '403':
+          description: Forbidden
+      operationId: get-products
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: parentProductId
+    post:
+      summary: Add Product
+      operationId: post-products
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productId:
+                    type: number
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+  '/products/{productId}':
+    parameters:
+      - schema:
+          type: number
+        name: productId
+        in: path
+        required: true
+    put:
+      summary: Update Product
+      operationId: put-products-productId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+    delete:
+      summary: Delete Product
+      operationId: delete-products-productId
+      responses:
+        '200':
+          description: OK
+          content: {}
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+    get:
+      summary: Get Product
+      operationId: get-products-productId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /emission-factors:
+    get:
+      summary: Get Emission Factors
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmissionFactor'
+        '403':
+          description: Forbidden
+      operationId: get-emission-factors
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: emissionFactorCategoryId
+        - schema:
+            type: string
+          in: query
+          name: emissionFactorName
+      requestBody:
+        content: {}
+    post:
+      summary: Add Emission Factor
+      operationId: post-emission-factors
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emissionFactorId:
+                    type: number
+                required:
+                  - emissionFactorId
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmissionFactor'
+  '/emission-factors/{emissionFactorId}':
+    parameters:
+      - schema:
+          type: number
+        name: emissionFactorId
+        in: path
+        required: true
+    put:
+      summary: Update Emission Factor
+      operationId: put-emission-factors-emissionFactorId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmissionFactor'
+        description: ''
+    delete:
+      summary: Delete Emission Factor
+      operationId: delete-emission-factors-emissionFactorId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+    get:
+      summary: Get Emission Factor
+      operationId: get-emission-factors-emissionFactorId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmissionFactor'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /emission-factor-categories:
+    get:
+      summary: Get Emission Factor Categories
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmissionFactorCategory'
+        '403':
+          description: Forbidden
+      operationId: get-inventory-databases
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: emissionFactorCategoryId
+    parameters: []
+    post:
+      summary: Add Emission Factor Category
+      operationId: post-emission-factor-categories
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emissionFactorCategoryId:
+                    type: number
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmissionFactorCategory'
+  '/emission-factor-categories/{emissionFactorCategoryId}':
+    parameters:
+      - schema:
+          type: number
+        name: emissionFactorCategoryId
+        in: path
+        required: true
+    delete:
+      summary: Delete Emission Factor Category
+      operationId: delete-emission-factor-categories-emissionFactorCategoryId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+    put:
+      summary: Update Emission Factor Category
+      operationId: put-emission-factor-categories-emissionFactorCategoryId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmissionFactorCategory'
+      description: ''
+  '/production-activities/{productId}':
+    get:
+      summary: Get Production Activities
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductionActivity'
+          headers: {}
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      operationId: get-product-activity
+      security:
+        - BearerToken: []
+    parameters:
+      - schema:
+          type: number
+        name: productId
+        in: path
+        required: true
+  '/production-activities/{productId}/{emissionFactorId}':
+    parameters:
+      - schema:
+          type: number
+        name: productId
+        in: path
+        required: true
+      - schema:
+          type: number
+        name: emissionFactorId
+        in: path
+        required: true
+    delete:
+      summary: Delete Production Activity
+      operationId: delete-product-activities-productId-emissionFactorId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+    put:
+      summary: Update Production Activity
+      operationId: put-production-activities-productId-emissionFactorId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductionActivity'
+  /product-footprints:
+    get:
+      summary: Get Product Footprints
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    productFootprintId:
+                      type: number
+                    dataId:
+                      type: string
+                      format: uuid
+                    version:
+                      type: number
+                    updatedDate:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+                      enum:
+                        - Active
+                        - Deprecated
+                    organizationId:
+                      type: number
+                    productId:
+                      type: number
+                    carbonFootprint:
+                      type: string
+                      pattern: '^[0-9]+(\.[0-9]+)?$'
+                    amountUnit:
+                      type: string
+                      enum:
+                        - kg
+                        - l
+                        - m3
+                        - m2
+                        - kWh
+                        - MJ
+                        - t-km
+                  required:
+                    - productFootprintId
+                    - dataId
+                    - version
+                    - updatedDate
+                    - status
+                    - organizationId
+                    - productId
+        '403':
+          description: Forbidden
+      operationId: get-product-footprints
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: productId
+    post:
+      summary: Add Product Footprint
+      operationId: post-product-footprints
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productFootprintId:
+                    type: number
+                required:
+                  - productFootprintId
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductFootprint'
+  '/product-footprints/{productFootprintId}':
+    parameters:
+      - schema:
+          type: number
+          format: uuid
+        name: productFootprintId
+        in: path
+        required: true
+    put:
+      summary: Update Product Footprint
+      operationId: put-product-footprints-productFootprintId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productFootprintId:
+                    type: number
+                required:
+                  - productFootprintId
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductFootprint'
+    delete:
+      summary: Delete Product Footprint
+      operationId: delete-product-footprints-productFootprintId
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+    get:
+      summary: Get Product Footprint
+      operationId: get-product-footprints-productFootprintId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductFootprint'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /datasources:
+    get:
+      summary: Get Data Source
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataSource'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      operationId: get-datasources
+      security:
+        - BearerToken: []
+      parameters:
+        - schema:
+            type: number
+          in: query
+          name: productId
+        - schema:
+            type: string
+          in: query
+          name: dataSourceName
+    post:
+      summary: Add Data Source
+      operationId: post-datasources
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSource'
+  '/datasources/{dataSourceId}':
+    parameters:
+      - schema:
+          type: number
+        name: dataSourceId
+        in: path
+        required: true
+    put:
+      summary: Update Data Source
+      operationId: put-datasources-datasourceId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSource'
+    delete:
+      summary: Delete Data Source
+      operationId: delete-datasources-datasourceId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+  '/product-datasources/{productId}':
+    parameters:
+      - schema:
+          type: number
+        name: productId
+        in: path
+        required: true
+    get:
+      summary: Get Product Data Sources
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    dataSourceId:
+                      type: number
+                    dataSourceName:
+                      type: string
+                  required:
+                    - dataSourceId
+                    - dataSourceName
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      operationId: get-product-datasources-productId
+      security:
+        - BearerToken: []
+    post:
+      summary: Add Product Data Source
+      operationId: post-product-datasources-productId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dataSourceId:
+                  type: number
+              required:
+                - dataSourceId
+  '/product-datasources/{productId}/{dataSourceId}':
+    parameters:
+      - schema:
+          type: number
+        name: productId
+        in: path
+        required: true
+      - schema:
+          type: number
+        name: dataSourceId
+        in: path
+        required: true
+    delete:
+      summary: Delete Product DataSource
+      operationId: delete-product-datasources-productId-dataSourceId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+  /sessions/current:
+    delete:
+      summary: Sign Out
+      operationId: delete-sessions-current
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden
+      security:
+        - BearerToken: []
+  /tasks/received:
+    get:
+      summary: Get Received Tasks
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '403':
+          description: Forbidden
+      operationId: get-tasks-received
+      security:
+        - BearerToken: []
+  /tasks/sent:
+    get:
+      summary: Get Sent Tasks
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '403':
+          description: Forbidden
+      operationId: get-tasks-sent
+      security:
+        - BearerToken: []
+  '/tasks/{taskId}':
+    parameters:
+      - schema:
+          type: number
+        name: taskId
+        in: path
+        required: true
+    get:
+      summary: Get Task
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      operationId: get-tasks-taskId
+      security:
+        - BearerToken: []
+    put:
+      summary: Update Task
+      operationId: put-tasks-taskId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+        description: ''
+      security:
+        - BearerToken: []
+    delete:
+      summary: Delete Task
+      operationId: delete-tasks-taskId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+      security:
+        - BearerToken: []
+  /requests:
+    post:
+      summary: Add Request
+      operationId: post-requests
+      responses:
+        '200':
+          description: OK
+      security:
+        - BearerToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipientOrganizationId:
+                  type: number
+                productId:
+                  type: number
+                message:
+                  type: string
+                requestType:
+                  type: string
+                  enum:
+                    - ProductFootprintRequest
+              required:
+                - recipientOrganizationId
+                - productId
+                - message
+                - requestType
+components:
+  schemas:
+    User:
+      title: User
+      type: object
+      properties:
+        userId:
+          type:
+            - number
+            - 'null'
+        userName:
+          type: string
+        userType:
+          type: string
+          enum:
+            - General
+            - Pathfinder
+        password:
+          type: string
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*\(\)\-_+\[\]{}|:;,.\/?])[a-zA-Z0-9!@#$%^&*\(\)\-_+\[\]{}|:;,.\/?]{8,32}$'
+        privileges:
+          type: array
+          items:
+            type: object
+            properties:
+              data:
+                type: string
+                enum:
+                  - Organization
+                  - Users
+                  - Products
+                  - EmissionFactor
+                  - ProductActivity
+                  - ProductFootprint
+                  - DataSource
+                  - Task
+              permission:
+                type: string
+                enum:
+                  - Read
+                  - Write
+            required:
+              - data
+              - permission
+        organizationId:
+          type: number
+      required:
+        - userId
+        - userName
+        - userType
+        - privileges
+    Organization:
+      title: Organization
+      type: object
+      properties:
+        organizationId:
+          type:
+            - number
+            - 'null'
+        organizationName:
+          type: string
+        identifiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationIdentifier'
+        organizationType:
+          type: string
+          enum:
+            - User
+            - Department
+            - BusinessPartner
+        parentOrganizationId:
+          type:
+            - number
+            - 'null'
+      required:
+        - organizationId
+        - organizationName
+        - identifiers
+        - organizationType
+        - parentOrganizationId
+    OrganizationIdentifier:
+      title: OrganizationIdentifier
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - UUID
+            - SGLN
+            - LEI
+            - SupplierSpecific
+            - BuyerSpecific
+        code:
+          type: string
+    Product:
+      title: Product
+      type: object
+      properties:
+        productId:
+          type:
+            - number
+            - 'null'
+        productName:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        cpcCode:
+          type:
+            - string
+            - 'null'
+        identifiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductIdentifier'
+        parentProductId:
+          type:
+            - number
+            - 'null'
+        organizationId:
+          type: number
+        amount:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        amountUnit:
+          type:
+            - string
+            - 'null'
+          enum:
+            - kg
+            - t
+            - kl
+            - m3
+            - m2
+            - Nm3
+            - GJ
+            - kWh
+      required:
+        - productId
+        - productName
+        - description
+        - cpcCode
+        - identifiers
+        - parentProductId
+        - amount
+        - amountUnit
+    ProductIdentifier:
+      title: ProductIdentifier
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - UUID
+            - SGTIN
+            - SupplierSpecific
+            - BuyerSpecific
+        code:
+          type: string
+      required:
+        - type
+        - code
+    EmissionFactor:
+      title: EmissionFactor
+      type: object
+      properties:
+        emissionFactorId:
+          type:
+            - number
+            - 'null'
+        emissionFactorName:
+          type: string
+        value:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        numeratorUnit:
+          type: string
+          enum:
+            - kg-CO2e
+            - t-CO2e
+        denominatorUnit:
+          type: string
+          enum:
+            - kg
+            - t
+            - kl
+            - m3
+            - m2
+            - Nm3
+            - GJ
+            - kWh
+        emissionFactorCategoryId:
+          type: number
+      required:
+        - emissionFactorId
+        - emissionFactorName
+        - value
+        - numeratorUnit
+        - denominatorUnit
+        - emissionFactorCategoryId
+    EmissionFactorCategory:
+      title: EmissionFactorCategory
+      type: object
+      properties:
+        emissionFactorCategoryId:
+          type:
+            - number
+            - 'null'
+        emissionFactorCategoryName:
+          type: string
+        version:
+          type:
+            - string
+            - 'null'
+        parentEmissionFactorCategoryId:
+          type:
+            - number
+            - 'null'
+      required:
+        - emissionFactorCategoryId
+        - emissionFactorCategoryName
+        - version
+        - parentEmissionFactorCategoryId
+    ProductionActivity:
+      title: ProductionActivity
+      type: object
+      properties:
+        productId:
+          type: number
+        emissionFactorId:
+          type: number
+        amount:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+      required:
+        - productId
+        - emissionFactorId
+        - amount
+    ProductFootprint:
+      title: ProductFootprint
+      type: object
+      properties:
+        productFootprintId:
+          type:
+            - number
+            - 'null'
+        dataId:
+          type:
+            - string
+            - 'null'
+          format: uuid
+        version:
+          type: number
+        updatedDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        status:
+          type: string
+          enum:
+            - Active
+            - Deprecated
+        statusComment:
+          type:
+            - string
+            - 'null'
+        availableStartDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        availableEndDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        organizationId:
+          type:
+            - number
+            - 'null'
+        productId:
+          type: number
+        comment:
+          type:
+            - string
+            - 'null'
+        amountUnit:
+          type: string
+          enum:
+            - kg
+            - l
+            - m3
+            - m2
+            - kWh
+            - MJ
+            - t-km
+        amount:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        carbonFootprint:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        carbonFootprintIncludingBiogenic:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        fossilEmissions:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        fossilCarbonContent:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        biogenicCarbonContent:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        dLucEmissions:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        landManagementEmissions:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        otherBiogenicEmissions:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        iLucGhgEmissions:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        biogenicRemoval:
+          type:
+            - string
+            - 'null'
+          pattern: '^(-[0-9]+(\.[0-9]+)?|0)$'
+        aircraftEmissions:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        gwpReports:
+          type: array
+          items:
+            type: string
+            enum:
+              - AR5
+              - AR6
+        accountingStandards:
+          type: array
+          items:
+            type: string
+            enum:
+              - GHGProtocol
+              - ISO14067
+              - ISO14044
+        carbonAccountingRules:
+          type:
+            - array
+            - 'null'
+          items:
+            $ref: '#/components/schemas/CarbonAccountingRule'
+        biogenicAccountingStandard:
+          type:
+            - string
+            - 'null'
+          enum:
+            - PEF
+            - ISO14067
+            - GHGProtocol
+            - Quantis
+        boundaryProcesses:
+          type: string
+        measurementStartDate:
+          type: string
+          format: date-time
+        measurementEndDate:
+          type: string
+          format: date-time
+        region:
+          type:
+            - string
+            - 'null'
+          enum:
+            - Africa
+            - Americas
+            - Asia
+            - Europe
+            - Oceania
+            - Australia and New Zealand
+            - Central Asia
+            - Eastern Asia
+            - Eastern Europe
+            - Latin America and the Caribbean
+            - Melanesia
+            - Micronesia
+            - Northern Africa
+            - Northern America
+            - Northern Europe
+            - Polynesia
+            - South-eastern Asia
+            - Southern Asia
+            - Southern Europe
+            - Sub-Saharan Africa
+            - Western Asia
+            - Western Europe
+        country:
+          type:
+            - string
+            - 'null'
+          pattern: '^[A-Z]{2}$'
+        subdivision:
+          type:
+            - string
+            - 'null'
+          pattern: '^[A-Z]{2}-[A-Z0-9]{2,3}$'
+        inventoryDatabases:
+          type:
+            - array
+            - 'null'
+          items:
+            $ref: '#/components/schemas/EmissionFactorCategory'
+        exemptedEmissionsRate:
+          type: number
+        exemptedEmissionsReason:
+          type: string
+        packagingGhgEmissions:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        allocationRules:
+          type:
+            - string
+            - 'null'
+        uncertaintyAssessment:
+          type:
+            - string
+            - 'null'
+        primaryDataShare:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+        dataQualityIndicator:
+          $ref: '#/components/schemas/DataQualityIndicator'
+        assurance:
+          $ref: '#/components/schemas/Assurance'
+      required:
+        - productFootprintId
+        - dataId
+        - version
+        - updatedDate
+        - status
+        - statusComment
+        - availableStartDate
+        - availableEndDate
+        - organizationId
+        - productId
+        - comment
+        - amountUnit
+        - amount
+        - carbonFootprint
+        - carbonFootprintIncludingBiogenic
+        - fossilEmissions
+        - fossilCarbonContent
+        - biogenicCarbonContent
+        - dLucEmissions
+        - landManagementEmissions
+        - otherBiogenicEmissions
+        - iLucGhgEmissions
+        - biogenicRemoval
+        - aircraftEmissions
+        - gwpReports
+        - accountingStandards
+        - carbonAccountingRules
+        - biogenicAccountingStandard
+        - boundaryProcesses
+        - measurementStartDate
+        - measurementEndDate
+        - region
+        - country
+        - subdivision
+        - inventoryDatabases
+        - exemptedEmissionsRate
+        - exemptedEmissionsReason
+        - packagingGhgEmissions
+        - allocationRules
+        - uncertaintyAssessment
+        - primaryDataShare
+        - dataQualityIndicator
+        - assurance
+    CarbonAccountingRule:
+      title: CarbonAccountingRule
+      type: object
+      properties:
+        operator:
+          type: string
+          enum:
+            - PEF
+            - EPD
+            - Other
+        ruleNames:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        operatorName:
+          type:
+            - string
+            - 'null'
+      required:
+        - operator
+        - ruleNames
+        - operatorName
+    DataQualityIndicator:
+      title: DataQualityIndicator
+      type:
+        - object
+        - 'null'
+      properties:
+        coverage:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]{3}(\.[0-9]+)?$'
+        ter:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]{1}(\.[0-9]+)?$'
+        tir:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]{1}(\.[0-9]+)?$'
+        ger:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]{1}(\.[0-9]+)?$'
+        completeness:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]{1}(\.[0-9]+)?$'
+        reliability:
+          type:
+            - string
+            - 'null'
+          pattern: '^[0-9]{1}(\.[0-9]+)?$'
+      required:
+        - coverage
+        - ter
+        - tir
+        - ger
+        - completeness
+        - reliability
+    Assurance:
+      title: Assurance
+      type:
+        - object
+        - 'null'
+      properties:
+        coverage:
+          type:
+            - string
+            - 'null'
+          enum:
+            - corporate level
+            - product line
+            - PCF system
+            - product level
+        level:
+          type:
+            - string
+            - 'null'
+          enum:
+            - limited
+            - reasonable
+        boundary:
+          type:
+            - string
+            - 'null'
+          enum:
+            - Gate-to-Gate
+            - Cradle-to-Gate
+        providerName:
+          type: string
+        updatedDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        standard:
+          type:
+            - string
+            - 'null'
+        comments:
+          type:
+            - string
+            - 'null'
+      required:
+        - coverage
+        - level
+        - boundary
+        - providerName
+        - updatedDate
+        - standard
+        - comments
+    DataSource:
+      title: DataSource
+      type: object
+      properties:
+        dataSourceId:
+          type:
+            - number
+            - 'null'
+        dataSourceName:
+          type: string
+        dataSourceType:
+          type: string
+          enum:
+            - Pathfinder
+        userName:
+          type: string
+        password:
+          type: string
+        endpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum:
+                  - Authenticate
+                  - GetFootprints
+                  - UpdateEvent
+              url:
+                type: string
+                pattern: '^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$'
+            required:
+              - type
+              - url
+      required:
+        - dataSourceId
+        - dataSourceName
+        - dataSourceType
+        - endpoints
+    Task:
+      title: Task
+      type: object
+      properties:
+        taskId:
+          type:
+            - number
+            - 'null'
+        clientOrganizationId:
+          type:
+            - number
+            - 'null'
+        clientOrganizationName:
+          type: string
+        recipientOrganizationId:
+          type: number
+        recipientOrganizationName:
+          type: string
+        taskType:
+          type: string
+          enum:
+            - ProductFootprintNotification
+            - ProductFootprintRequest
+        message:
+          type: string
+        status:
+          type: string
+          enum:
+            - Unread
+            - Pending
+            - Rejected
+            - Completed
+        data:
+          type: object
+          description: 'Content of notices, requests, etc.'
+        updatedDate:
+          type:
+            - string
+            - 'null'
+          format: date-time
+      required:
+        - taskId
+        - clientOrganizationId
+        - recipientOrganizationId
+        - taskType
+        - message
+        - status
+        - updatedDate
+  securitySchemes:
+    BearerToken:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /auth/token
+          scopes: {}

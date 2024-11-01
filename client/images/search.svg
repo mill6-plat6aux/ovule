@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill:rgba(0,0,0,0.6);fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <metadata>
+        <rdf:RDF
+           xmlns:rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+           xmlns:dc = "http://purl.org/dc/elements/1.1/"
+           xmlns:schema="http://schema.org/">
+            <rdf:Description about="">
+                <dc:creator>Takuro Okada</dc:creator>
+                <schema:license rdf:resource="https://raw.githubusercontent.com/mill6-plat6aux/ovule/refs/heads/main/LICENSE"/>
+            </rdf:Description>
+        </rdf:RDF>
+    </metadata>
+    <path d="M589.545,708.339C530.082,746.12 459.576,768 384,768C172.065,768 0,595.935 0,384C0,172.065 172.065,0 384,0C595.935,0 768,172.065 768,384C768,459.576 746.12,530.082 708.339,589.545L999.413,880.62C1032.2,913.402 1032.2,966.631 999.413,999.413C966.631,1032.2 913.402,1032.2 880.62,999.413L589.545,708.339ZM384,168C503.214,168 600,264.786 600,384C600,503.214 503.214,600 384,600C264.786,600 168,503.214 168,384C168,264.786 264.786,168 384,168Z"/>
+</svg>

@@ -1,0 +1,50 @@
+services:
+  ovule-database1:
+    platform: linux/arm64
+    image: mysql
+    container_name: ovule-database1
+    user: 1000:1000
+    environment:
+      MYSQL_ROOT_PASSWORD: "0WtTNy2C"
+      MYSQL_USER: ovule
+      MYSQL_PASSWORD: "6ZOX6dmi"
+      MYSQL_DATABASE: ovule
+    volumes:
+      - ./database/ovule.sql:/docker-entrypoint-initdb.d/ovule.sql
+      - ./database/demo1/users.sql:/docker-entrypoint-initdb.d/users.sql
+      - ./database/demo1/data:/var/lib/mysql
+    ports:
+      - 13306:3306
+  ovule-server1:
+    platform: linux/arm64
+    image: ovule-server
+    container_name: ovule-server1
+    build:
+      context: .
+      dockerfile: Dockerfile_server
+    environment:
+      CONTEXT_PATH: http://ovule-server1:3000
+      DATABASE_HOST: ovule-database1
+      DATABASE_PORT: 3306
+      DATABASE_USERNAME: ovule
+      DATABASE_PASSWORD: 6ZOX6dmi
+      DATABASE_DATABASE: ovule
+    ports:
+      - 3000:3000
+    depends_on:
+      - ovule-database1
+  ovule-client1:
+    platform: linux/arm64
+    image: ovule-client
+    container_name: ovlue-client1
+    build:
+      context: .
+      dockerfile: Dockerfile_client
+    environment:
+      CONTEXT_PATH: http://localhost:8080/server
+    volumes:
+      - ./web/demo1/proxy.conf:/etc/nginx/conf.d/proxy.conf
+    ports:
+      - 8080:80
+    depends_on:
+      - ovule-server1
